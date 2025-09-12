@@ -1,25 +1,37 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { ThemeToggle } from "./ThemeToggle";
 import { MapView } from "./MapView";
 import { RoutesTab } from "./RoutesTab";
 import { StopsTab } from "./StopsTab";
 import { AboutTab } from "./AboutTab";
-import { 
-  ArrowLeft, 
-  Search, 
-  RefreshCw, 
-  MapPin, 
-  Clock, 
+import {
+  ArrowLeft,
+  Search,
+  RefreshCw,
+  MapPin,
+  Clock,
   Bus,
   Navigation,
   Route,
   Info,
   Settings,
-  Users
+  Users,
 } from "lucide-react";
 
 interface DashboardProps {
@@ -38,36 +50,36 @@ interface BusData {
 const mockBusData: BusData[] = [
   {
     id: "BUS-001",
-    route: "City Center → Airport",
-    currentLocation: { lat: 19.0760, lng: 72.8777 },
+    route: "CP → IGI Airport",
+    currentLocation: { lat: 28.6315, lng: 77.2167 },
     eta: "5 min",
     timeToDestination: "25 min",
-    nextStop: "Central Station"
+    nextStop: "Connaught Place",
   },
   {
     id: "BUS-002",
-    route: "University → Mall",
-    currentLocation: { lat: 19.0896, lng: 72.8656 },
+    route: "Delhi University → Select City Mall",
+    currentLocation: { lat: 28.5022, lng: 77.091 },
     eta: "12 min",
     timeToDestination: "18 min",
-    nextStop: "Tech Park"
+    nextStop: "Gurgaon Cyber City",
   },
   {
     id: "BUS-003",
-    route: "Hospital → Beach",
-    currentLocation: { lat: 19.0544, lng: 72.8906 },
+    route: "AIIMS → India Gate",
+    currentLocation: { lat: 28.6129, lng: 77.2295 },
     eta: "8 min",
     timeToDestination: "32 min",
-    nextStop: "Marine Drive"
+    nextStop: "India Gate",
   },
   {
     id: "BUS-004",
-    route: "Railway → Tech Park",
-    currentLocation: { lat: 19.0825, lng: 72.8811 },
+    route: "New Delhi Railway Station → Cyber City",
+    currentLocation: { lat: 28.6439, lng: 77.2186 },
     eta: "15 min",
     timeToDestination: "28 min",
-    nextStop: "Downtown"
-  }
+    nextStop: "New Delhi Railway Station",
+  },
 ];
 
 export function Dashboard({ onBack }: DashboardProps) {
@@ -77,10 +89,12 @@ export function Dashboard({ onBack }: DashboardProps) {
   const [selectedBus, setSelectedBus] = useState<BusData | null>(null);
   const [showMap, setShowMap] = useState(false);
 
-  const filteredBuses = mockBusData.filter(bus => {
-    const matchesSearch = bus.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         bus.route.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRoute = selectedRoute === "all" || bus.route.includes(selectedRoute);
+  const filteredBuses = mockBusData.filter((bus) => {
+    const matchesSearch =
+      bus.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bus.route.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRoute =
+      selectedRoute === "all" || bus.route.includes(selectedRoute);
     return matchesSearch && matchesRoute;
   });
 
@@ -91,8 +105,8 @@ export function Dashboard({ onBack }: DashboardProps) {
 
   if (showMap && selectedBus) {
     return (
-      <MapView 
-        bus={selectedBus} 
+      <MapView
+        bus={selectedBus}
         onBack={() => setShowMap(false)}
         allBuses={mockBusData}
       />
@@ -112,7 +126,9 @@ export function Dashboard({ onBack }: DashboardProps) {
           <div className="text-center py-12">
             <Settings className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">Settings</h3>
-            <p className="text-muted-foreground">Theme toggle available in header</p>
+            <p className="text-muted-foreground">
+              Theme toggle available in header
+            </p>
           </div>
         );
       default:
@@ -135,13 +151,21 @@ export function Dashboard({ onBack }: DashboardProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Routes</SelectItem>
-                  <SelectItem value="City Center">City Center</SelectItem>
-                  <SelectItem value="University">University</SelectItem>
-                  <SelectItem value="Hospital">Hospital</SelectItem>
-                  <SelectItem value="Railway">Railway</SelectItem>
+                  <SelectItem value="CP">Connaught Place</SelectItem>
+                  <SelectItem value="Delhi University">
+                    Delhi University
+                  </SelectItem>
+                  <SelectItem value="AIIMS">AIIMS</SelectItem>
+                  <SelectItem value="Railway">
+                    New Delhi Railway Station
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" className="bg-card/50 border-border/50">
+              <Button
+                variant="outline"
+                size="icon"
+                className="bg-card/50 border-border/50"
+              >
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>
@@ -149,12 +173,17 @@ export function Dashboard({ onBack }: DashboardProps) {
             {/* Bus Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredBuses.map((bus) => (
-                <Card key={bus.id} className="group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50">
+                <Card
+                  key={bus.id}
+                  className="group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{bus.id}</CardTitle>
                     </div>
-                    <CardDescription className="text-sm">{bus.route}</CardDescription>
+                    <CardDescription className="text-sm">
+                      {bus.route}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -168,22 +197,28 @@ export function Dashboard({ onBack }: DashboardProps) {
                       <div className="flex items-center gap-2">
                         <Navigation className="w-4 h-4 text-primary" />
                         <div>
-                          <p className="text-sm text-muted-foreground">To Destination</p>
-                          <p className="font-semibold">{bus.timeToDestination}</p>
+                          <p className="text-sm text-muted-foreground">
+                            To Destination
+                          </p>
+                          <p className="font-semibold">
+                            {bus.timeToDestination}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-primary" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Next Stop</p>
+                        <p className="text-sm text-muted-foreground">
+                          Next Stop
+                        </p>
                         <p className="font-medium text-sm">{bus.nextStop}</p>
                       </div>
                     </div>
 
-                    <Button 
-                      onClick={() => handleViewLocation(bus)} 
+                    <Button
+                      onClick={() => handleViewLocation(bus)}
                       className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 group-hover:shadow-lg transition-all duration-300"
                     >
                       <MapPin className="w-4 h-4 mr-2" />
@@ -198,7 +233,9 @@ export function Dashboard({ onBack }: DashboardProps) {
               <div className="text-center py-12">
                 <Bus className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-xl font-semibold mb-2">No buses found</h3>
-                <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+                <p className="text-muted-foreground">
+                  Try adjusting your search or filter criteria
+                </p>
               </div>
             )}
           </div>
@@ -221,7 +258,9 @@ export function Dashboard({ onBack }: DashboardProps) {
               </div>
               <div>
                 <h1 className="text-xl font-bold">SmartTransit</h1>
-                <p className="text-sm text-muted-foreground">Passenger Dashboard</p>
+                <p className="text-sm text-muted-foreground">
+                  Passenger Dashboard
+                </p>
               </div>
             </div>
           </div>
@@ -236,7 +275,7 @@ export function Dashboard({ onBack }: DashboardProps) {
               { id: "routes", label: "Routes", icon: Route },
               { id: "stops", label: "Stops & ETA", icon: MapPin },
               { id: "about", label: "About", icon: Info },
-              { id: "settings", label: "Settings", icon: Settings }
+              { id: "settings", label: "Settings", icon: Settings },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -259,9 +298,7 @@ export function Dashboard({ onBack }: DashboardProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {renderTabContent()}
-      </main>
+      <main className="max-w-7xl mx-auto px-4 py-6">{renderTabContent()}</main>
     </div>
   );
 }
