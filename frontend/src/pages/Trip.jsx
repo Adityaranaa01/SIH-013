@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDriver } from '../context/DriverContext';
 import { geoTracker } from '../utils/geo';
+import { tripAPI } from '../services/api';
 
 const Trip = () => {
   const { driver } = useDriver();
@@ -50,30 +51,18 @@ const Trip = () => {
     if (!driver.driverId) return;
 
     try {
-      // Import supabase dynamically to avoid initialization errors
-      const { supabase } = await import('../config/supabase');
+      const result = await tripAPI.getActiveTrip(driver.driverId);
       
-      if (!supabase) {
-        console.warn('Supabase not configured - active trip check skipped');
+      if (!result.success) {
+        console.warn('Failed to check for active trips:', result.error);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('trips')
-        .select('trip_id, status')  // Fixed: was 'id', now 'trip_id' to match schema
-        .eq('driver_id', driver.driverId)
-        .eq('status', 'active')
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error;
-      }
-
-      if (data) {
-        setTripId(data.trip_id);  // Fixed: was 'data.id', now 'data.trip_id' to match schema
+      if (result.data) {
+        setTripId(result.data.tripId);
         setIsActive(true);
         setLocationStatus('Trip already active - GPS not tracking');
-        console.log('Found active trip:', data.trip_id);  // Fixed: was 'data.id', now 'data.trip_id'
+        console.log('Found active trip:', result.data.tripId);
       }
     } catch (err) {
       console.error('Error checking for active trip:', err);
@@ -93,30 +82,13 @@ const Trip = () => {
     setError(null);
 
     try {
-      // Import supabase dynamically
-      const { supabase } = await import('../config/supabase');
+      const result = await tripAPI.startTrip(driver.driverId, driver.busNumber);
       
-      if (!supabase) {
-        throw new Error('Supabase not configured. Please check your environment variables.');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to start trip');
       }
 
-      // Insert new trip record
-      const { data, error } = await supabase
-        .from('trips')
-        .insert({
-          driver_id: driver.driverId,
-          bus_number: driver.busNumber,
-          status: 'active',
-          start_time: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      const newTripId = data.trip_id;  // Fixed: was 'data.id', now 'data.trip_id' to match schema
+      const newTripId = result.data.tripId;
       setTripId(newTripId);
       setIsActive(true);
 
@@ -161,29 +133,13 @@ const Trip = () => {
       geoTracker.stopTracking();
       setLocationStatus('GPS tracking stopped');
 
-      // Import supabase dynamically
-      const { supabase } = await import('../config/supabase');
+      const result = await tripAPI.endTrip(tripId);
       
-      if (!supabase) {
-        throw new Error('Supabase not configured. Please check your environment variables.');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to end trip');
       }
 
-      // Update trip record with end time and status
-      const { data, error } = await supabase
-        .from('trips')
-        .update({
-          end_time: new Date().toISOString(),
-          status: 'completed'
-        })
-        .eq('trip_id', tripId)  // Fixed: was 'id', now 'trip_id' to match schema
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('Trip ended:', data);
+      console.log('Trip ended:', result.data);
 
       // Reset state
       setTripId(null);

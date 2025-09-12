@@ -1,4 +1,6 @@
 // src/utils/geo.js
+import { locationAPI } from '../services/api.js';
+
 class GeoTracker {
   constructor() {
     this.watchId = null;
@@ -155,31 +157,22 @@ class GeoTracker {
     });
 
     try {
-      // Import supabase dynamically to avoid initialization errors
-      const { supabase } = await import('../config/supabase.js');
-      
-      if (!supabase) {
-        throw new Error('Supabase client not initialized. Please check your environment variables.');
-      }
+      // Use the backend API to save location
+      const result = await locationAPI.saveLocation({
+        tripId: this.tripData.trip_id,
+        driverId: this.tripData.driver_id,
+        busNumber: this.tripData.bus_number,
+        latitude: latitude,
+        longitude: longitude,
+        timestamp: timestamp
+      });
 
-      // Insert location data into bus_locations table
-      const { data, error } = await supabase
-        .from('bus_locations')
-        .insert({
-          trip_id: this.tripData.trip_id,
-          driver_id: this.tripData.driver_id,
-          bus_number: this.tripData.bus_number,
-          latitude: latitude,    // Fixed: was 'lat', now 'latitude' to match schema
-          longitude: longitude,  // Fixed: was 'lng', now 'longitude' to match schema
-          timestamp: timestamp
-        });
-
-      if (error) {
-        throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save location');
       }
 
       this.lastUpdateTime = currentTime;
-      console.log(`✅ Location saved at ${timeString}`);
+      console.log(`✅ Location saved via API at ${timeString}`);
 
       // Call success callback if provided
       if (this.onLocationUpdate) {
@@ -187,12 +180,12 @@ class GeoTracker {
           latitude,
           longitude,
           timestamp,
-          data
+          data: result.data
         });
       }
 
     } catch (error) {
-      console.error('Error saving location:', error);
+      console.error('Error saving location via API:', error);
       if (this.onError) this.onError(error);
     }
   }

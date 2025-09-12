@@ -1,19 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
 import { useDriver } from '../context/DriverContext';
-
-// Initialize Supabase client with environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
-
-// Only create client if we have valid credentials
-const supabase = supabaseUrl.includes('placeholder') ? null : createClient(supabaseUrl, supabaseKey);
+import { authAPI, healthAPI } from '../services/api';
 
 const Login = () => {
   console.log('Login component rendering...');
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase configured:', !!supabase);
   
   const navigate = useNavigate();
   const { login } = useDriver();
@@ -23,6 +14,22 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState('checking');
+
+  // Check backend health on component mount
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
+  const checkBackendHealth = async () => {
+    try {
+      const health = await healthAPI.check();
+      setBackendStatus(health.success ? 'connected' : 'disconnected');
+    } catch (error) {
+      console.error('Backend health check failed:', error);
+      setBackendStatus('disconnected');
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -40,10 +47,9 @@ const Login = () => {
     setError('');
 
     try {
-      // If no Supabase client, simulate validation for demo purposes
-      if (!supabase) {
-        // Demo mode - allow any driver_id and bus_number for testing
-        console.log('Demo mode: Supabase not configured');
+      // If backend is not available, use demo mode
+      if (backendStatus !== 'connected') {
+        console.log('Demo mode: Backend not available');
         if (formData.driverId.trim() && formData.busNumber.trim()) {
           login(formData.driverId, formData.busNumber);
           navigate('/trip');
@@ -55,27 +61,22 @@ const Login = () => {
         }
       }
 
-      // Query Supabase drivers table to validate driver
-      const { data, error: supabaseError } = await supabase
-        .from('drivers')
-        .select('*')
-        .eq('driver_id', formData.driverId)
-        .eq('bus_number', formData.busNumber)
-        .single();
+      // Use backend API for authentication
+      const result = await authAPI.login(formData.driverId, formData.busNumber);
 
-      if (supabaseError || !data) {
-        setError('Invalid driver ID or bus number. Please check your credentials.');
+      if (!result.success) {
+        setError(result.error || 'Authentication failed');
         setLoading(false);
         return;
       }
 
-      // If validation successful, login and navigate
+      // If authentication successful, login and navigate
       login(formData.driverId, formData.busNumber);
       navigate('/trip');
       
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred during login. Please try again.');
+      setError(err.message || 'An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -91,10 +92,24 @@ const Login = () => {
           <p className="mt-2 text-sm text-gray-600">
             Enter your credentials to access the driver portal
           </p>
-          {!supabase && (
+          {backendStatus === 'checking' && (
+            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Checking backend connection...</strong>
+              </p>
+            </div>
+          )}
+          {backendStatus === 'disconnected' && (
             <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <strong>Demo Mode:</strong> Supabase not configured. Any driver ID and bus number will work for testing.
+                <strong>Demo Mode:</strong> Backend not available. Any driver ID and bus number will work for testing.
+              </p>
+            </div>
+          )}
+          {backendStatus === 'connected' && (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-800">
+                <strong>Backend Connected:</strong> Full functionality available.
               </p>
             </div>
           )}
