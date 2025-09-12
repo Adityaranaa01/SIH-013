@@ -38,9 +38,9 @@ SmartTransit is a comprehensive real-time public transport tracking system desig
 - Cost-effective solution for small city budgets
 
 ### Team Information
-- **Team**: IIT Mumbai Students
-- **Contact**: team.smarttransit@gmail.com
-- **Phone**: +91 98765 43210
+- **Team**: DSCE Students
+- **Contact**: -
+- **Phone**: -
 
 ### Installation & Setup
 
