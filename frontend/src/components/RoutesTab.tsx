@@ -549,7 +549,7 @@ export function RoutesTab() {
 
       {/* Route Details Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Route className="w-5 h-5" />
@@ -562,166 +562,177 @@ export function RoutesTab() {
           </DialogHeader>
 
           {selectedRoute && (
-            <div className="space-y-6">
-              {/* Route Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <MapPin className="w-5 h-5 text-primary" />
+            <div
+              className="relative overflow-y-auto"
+              style={{ height: "calc(85vh - 120px)" }}
+            >
+              <div className="space-y-6 p-1">
+                {/* Route Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total Stops</p>
+                    <p className="font-semibold text-lg">
+                      {selectedRoute.totalStops}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Total Stops</p>
-                  <p className="font-semibold text-lg">
-                    {selectedRoute.totalStops}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <Bus className="w-5 h-5 text-primary" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <Bus className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Active Buses
+                    </p>
+                    <p className="font-semibold text-lg">
+                      {selectedRoute.activeBuses}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Active Buses</p>
-                  <p className="font-semibold text-lg">
-                    {selectedRoute.activeBuses}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <Clock className="w-5 h-5 text-primary" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total Time</p>
+                    <p className="font-semibold text-lg">
+                      {selectedRoute.avgTime}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Total Time</p>
-                  <p className="font-semibold text-lg">
-                    {selectedRoute.avgTime}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${getStatusColor(
-                        selectedRoute.status
-                      )}`}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <p className="font-semibold text-lg">
-                    {getStatusText(selectedRoute.status)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Route Path */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-red-50 dark:from-green-950/20 dark:to-red-950/20 border border-border/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <div>
-                    <p className="font-medium text-sm">Start Point</p>
-                    <p className="text-lg font-semibold">
-                      {selectedRoute.startPoint}
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <div
+                        className={`w-3 h-3 rounded-full ${getStatusColor(
+                          selectedRoute.status
+                        )}`}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="font-semibold text-lg">
+                      {getStatusText(selectedRoute.status)}
                     </p>
                   </div>
                 </div>
-                <div className="flex-1 mx-6 border-t-2 border-dashed border-muted-foreground/50"></div>
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="font-medium text-sm">End Point</p>
-                    <p className="text-lg font-semibold">
-                      {selectedRoute.endPoint}
-                    </p>
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                </div>
-              </div>
 
-              {/* Stops List */}
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  All Stops ({selectedRoute.stops.length})
-                </h3>
-                {/* FIXED: stops list scrollable */}
-                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
-                  {selectedRoute.stops.map((stop, index) => (
-                    <Card
-                      key={stop.id}
-                      className="bg-card/50 backdrop-blur-sm border-border/50"
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                                {index + 1}
-                              </div>
-                              {index < selectedRoute.stops.length - 1 && (
-                                <div className="w-0.5 h-8 bg-border mt-2"></div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-base">
-                                {stop.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {stop.id}
-                              </p>
-                              {stop.amenities && stop.amenities.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {stop.amenities.map(
-                                    (amenity, amenityIndex) => (
-                                      <Badge
-                                        key={amenityIndex}
-                                        variant="secondary"
-                                        className="text-xs"
-                                      >
-                                        {amenity}
-                                      </Badge>
-                                    )
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-primary">
-                              {stop.estimatedTime}
-                            </p>
-                            <p className="text-xs text-muted-foreground">ETA</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Route Information */}
-              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Route className="w-5 h-5" />
-                    Route Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {/* Route Path */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-red-50 dark:from-green-950/20 dark:to-red-950/20 border border-border/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     <div>
-                      <p className="text-muted-foreground mb-1">Route ID:</p>
-                      <p className="font-medium">{selectedRoute.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground mb-1">Frequency:</p>
-                      <p className="font-medium">Every 15-20 minutes</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground mb-1">
-                        Operating Hours:
+                      <p className="font-medium text-sm">Start Point</p>
+                      <p className="text-lg font-semibold">
+                        {selectedRoute.startPoint}
                       </p>
-                      <p className="font-medium">5:00 AM - 11:00 PM</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground mb-1">Fare:</p>
-                      <p className="font-medium">₹10 - ₹25 (Distance based)</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex-1 mx-6 border-t-2 border-dashed border-muted-foreground/50"></div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-medium text-sm">End Point</p>
+                      <p className="text-lg font-semibold">
+                        {selectedRoute.endPoint}
+                      </p>
+                    </div>
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  </div>
+                </div>
+
+                {/* Stops List */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    All Stops ({selectedRoute.stops.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedRoute.stops.map((stop, index) => (
+                      <Card
+                        key={stop.id}
+                        className="bg-card/50 backdrop-blur-sm border-border/50"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                                  {index + 1}
+                                </div>
+                                {index < selectedRoute.stops.length - 1 && (
+                                  <div className="w-0.5 h-8 bg-border mt-2"></div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-base">
+                                  {stop.name}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {stop.id}
+                                </p>
+                                {stop.amenities &&
+                                  stop.amenities.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {stop.amenities.map(
+                                        (amenity, amenityIndex) => (
+                                          <Badge
+                                            key={amenityIndex}
+                                            variant="secondary"
+                                            className="text-xs"
+                                          >
+                                            {amenity}
+                                          </Badge>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-primary">
+                                {stop.estimatedTime}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ETA
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Route Information */}
+                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Route className="w-5 h-5" />
+                      Route Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground mb-1">Route ID:</p>
+                        <p className="font-medium">{selectedRoute.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Frequency:</p>
+                        <p className="font-medium">Every 15-20 minutes</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">
+                          Operating Hours:
+                        </p>
+                        <p className="font-medium">5:00 AM - 11:00 PM</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Fare:</p>
+                        <p className="font-medium">
+                          ₹10 - ₹25 (Distance based)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </DialogContent>
