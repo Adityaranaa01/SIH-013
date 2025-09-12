@@ -81,17 +81,17 @@ ALTER TABLE drivers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bus_locations ENABLE ROW LEVEL SECURITY;
 
--- Create policies for authenticated users (you can modify these based on your auth requirements)
+-- Create policies for authenticated users (modified for development - allows public access)
 CREATE POLICY "Enable read access for all users" ON drivers FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON trips FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON bus_locations FOR SELECT USING (true);
 
--- Create policies for insert/update (restrict to authenticated users)
-CREATE POLICY "Enable insert for authenticated users only" ON drivers FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Enable update for authenticated users only" ON drivers FOR UPDATE USING (auth.role() = 'authenticated');
+-- Create policies for insert/update (temporarily allow public access for development)
+CREATE POLICY "Enable insert for all users" ON drivers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for all users" ON drivers FOR UPDATE USING (true);
 
-CREATE POLICY "Enable insert for authenticated users only" ON trips FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Enable update for authenticated users only" ON trips FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable insert for all users" ON trips FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for all users" ON trips FOR UPDATE USING (true);
 
-CREATE POLICY "Enable insert for authenticated users only" ON bus_locations FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Enable update for authenticated users only" ON bus_locations FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Enable insert for all users" ON bus_locations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for all users" ON bus_locations FOR UPDATE USING (true);
