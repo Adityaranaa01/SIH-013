@@ -3,6 +3,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/Dashboard";
 import { DriverPage } from "./components/DriverPage";
+import 'leaflet/dist/leaflet.css';
 
 type AppState = "landing" | "user" | "driver";
 
