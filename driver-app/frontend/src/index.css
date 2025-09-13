@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  /* Light theme */
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --muted: #f6f7fb;
+  --muted-foreground: #717182;
+  --border: rgba(0,0,0,0.1);
+  --primary: #6366f1; /* Indigo-500 */
+  --primary-foreground: #ffffff;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+}
+
+.dark {
+  /* Dark theme */
+  --background: #0a0b14;
+  --foreground: #e2e8f0;
+  --card: #1e1b2e;
+  --card-foreground: #e2e8f0;
+  --muted: #141525;
+  --muted-foreground: #94a3b8;
+  --border: #2d2a4a;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+}
+
+/* Utility classes mapping to CSS vars for ease of use */
+.bg-background { background-color: var(--background); }
+.text-foreground { color: var(--foreground); }
+.bg-card { background-color: var(--card); }
+.text-card-foreground { color: var(--card-foreground); }
+.bg-muted { background-color: var(--muted); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.border-border { border-color: var(--border); }
+.bg-primary { background-color: var(--primary); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.bg-destructive { background-color: var(--destructive); }
+.text-destructive { color: var(--destructive); }
+
+/* Simple glass effect helper */
+.card-glass { backdrop-filter: blur(6px); background-color: color-mix(in srgb, var(--card) 85%, transparent); }
+
+/* Gradients */
+.gradient-title { background-image: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.gradient-cta { background-image: linear-gradient(90deg, #7c3aed, #6d28d9); }
+.gradient-logo { background-image: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+/* Button base (used by UI components) */
+.btn { display:inline-flex; align-items:center; justify-content:center; font-weight:500; border-radius:0.375rem; transition:all .2s ease; }
+.btn-lg { height: 2.5rem; padding: 0 1.5rem; }
+.btn-default { background: var(--primary); color: var(--primary-foreground); }
+.btn-default:hover { filter: brightness(0.95); }
+.btn-outline { border:1px solid var(--border); background: var(--background); }
+.btn-ghost { background: transparent; }
+.btn-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+
+/* Card */
+.card { border: 1px solid var(--border); border-radius: 0.75rem; background: var(--card); }
+.card-header { padding: 1rem 1rem 0.5rem; }
+.card-content { padding: 1rem; }
+.card-footer { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+
+/* Inputs */
+.input { width:100%; padding:0.65rem 0.75rem; border:1px solid var(--border); border-radius:0.5rem; background: var(--background); color: var(--foreground); outline:none; }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent); }
+
+/* Badge */
+.badge { display:inline-flex; align-items:center; gap:0.25rem; padding:0.125rem 0.5rem; border-radius:999px; font-size:0.75rem; border:1px solid var(--border); background: var(--background); }
+.badge-success { color:#16a34a; border-color: #bbf7d0; background: #f0fdf4; }
+.badge-muted { color: var(--muted-foreground); }
+
+/* Header styles */
+.header-bar { border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
