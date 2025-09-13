@@ -49,6 +49,7 @@ SmartTransit is a comprehensive real-time public transport tracking system desig
 git clone https://github.com/team-smarttransit/hackathon-2024
 
 # Install dependencies
+npm typesync
 npm install
 
 # Start development server

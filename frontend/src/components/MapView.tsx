@@ -101,7 +101,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               zoom={13}
               scrollWheelZoom={true}
               style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
-              whenReady={(map) => setMap(map.target)}
+              ref={setMap}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
