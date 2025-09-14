@@ -46,7 +46,7 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <NavigationIcon className="h-6 w-6 text-blue-600" />
-              <span className="text-xl font-medium text-gray-900">SmartTransit</span>
+              <span className="text-xl font-medium text-gray-900">SmartFleet</span>
             </div>
             <div className="flex items-center gap-2">
               <NavItems />
@@ -60,7 +60,7 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <NavigationIcon className="h-6 w-6 text-blue-600" />
-            <span className="text-lg font-medium text-gray-900">SmartTransit</span>
+            <span className="text-lg font-medium text-gray-900">SmartFleet</span>
           </div>
           <Sheet>
             <SheetTrigger asChild>
@@ -73,7 +73,7 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
                 <div className="mb-6">
                   <div className="flex items-center gap-2">
                     <NavigationIcon className="h-6 w-6 text-blue-600" />
-                    <span className="text-lg font-medium text-gray-900">SmartTransit</span>
+                    <span className="text-lg font-medium text-gray-900">SmartFleet</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">Public Transport Tracking</p>
                 </div>

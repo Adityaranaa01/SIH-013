@@ -137,10 +137,10 @@ export function DriverPage({ onBack }: DriverPageProps) {
           <Card className="max-w-md mx-auto bg-card/50 backdrop-blur-sm border-border/50">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Driver Registration
+                Driver Log In
               </CardTitle>
               <CardDescription>
-                Enter your details to start GPS tracking
+                Enter your details to Log In 
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -173,7 +173,7 @@ export function DriverPage({ onBack }: DriverPageProps) {
                 size="lg"
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                Enable Location Tracking
+                Log In
               </Button>
             </CardContent>
           </Card>

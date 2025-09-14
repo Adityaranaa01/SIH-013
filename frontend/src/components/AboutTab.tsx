@@ -52,7 +52,7 @@ export function AboutTab() {
       {/* Header */}
       <div className="text-center">
         <Info className="w-16 h-16 mx-auto mb-4 text-primary" />
-        <h2 className="text-2xl font-bold mb-2">About SmartTransit</h2>
+        <h2 className="text-2xl font-bold mb-2">About SmartFleet</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           A next-generation public transport tracking system designed for Smart India Hackathon 2024, 
           addressing the challenges of small city transportation with cutting-edge technology.
@@ -84,7 +84,7 @@ export function AboutTab() {
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Key Features</CardTitle>
-          <CardDescription>Technologies and capabilities that make SmartTransit unique</CardDescription>
+          <CardDescription>Technologies and capabilities that make SmartFleet unique</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -148,7 +148,7 @@ export function AboutTab() {
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Technical Implementation</CardTitle>
-          <CardDescription>Technologies and architecture powering SmartTransit</CardDescription>
+          <CardDescription>Technologies and architecture powering SmartFleet</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
