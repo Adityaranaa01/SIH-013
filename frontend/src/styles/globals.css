@@ -1,39 +1,45 @@
-@custom-variant dark (&:is(.dark *));
-import "leaflet/dist/leaflet.css";
+.user-pulse {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  /* larger container so ring doesn't rely on overflow */
+  height: 40px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  /* don't block map interactions */
+}
 
+.user-pulse-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--neon-green, #10b981);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 
+.user-pulse-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.18);
+  animation: user-pulse 1.6s infinite ease-out;
+  pointer-events: none;
+}
+
+/* Text sizes */
+/* Futuristic gradient colors */
+
+/* Move project CSS variables into :root so this file is valid CSS. These are originally Tailwind theme variables. */
 :root {
-  --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: #030213;
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -41,7 +47,7 @@ import "leaflet/dist/leaflet.css";
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  
+
   /* Text sizes */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -49,7 +55,7 @@ import "leaflet/dist/leaflet.css";
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
-  
+
   /* Futuristic gradient colors */
   --gradient-start: #6366f1;
   --gradient-middle: #8b5cf6;
@@ -57,6 +63,10 @@ import "leaflet/dist/leaflet.css";
   --neon-blue: #00d4ff;
   --neon-purple: #a855f7;
   --neon-green: #10b981;
+  /* Responsive offsets for map legend/toggle (use viewport-relative units) */
+  /* Closed toggle sits lower; open legend sits higher. Values use clamp(min, preferred, max) mixing px and vh for responsiveness */
+  --map-legend-top-closed: clamp(2.5rem, 18vh, 6rem); /* ~40px - 96px depending on viewport */
+  --map-legend-top-open: clamp(1.5rem, 12vh, 4.5rem);   /* ~24px - 72px depending on viewport */
 }
 
 .dark {
@@ -94,7 +104,7 @@ import "leaflet/dist/leaflet.css";
   --sidebar-accent-foreground: #e2e8f0;
   --sidebar-border: #2d2a4a;
   --sidebar-ring: #6366f1;
-  
+
   /* Text sizes (same for dark mode) */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -102,7 +112,7 @@ import "leaflet/dist/leaflet.css";
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
-  
+
   /* Dark mode futuristic colors */
   --gradient-start: #4f46e5;
   --gradient-middle: #7c3aed;
@@ -252,12 +262,248 @@ html {
   z-index: 1;
 }
 
+/* Ensure the map wrapper provides a concrete height for Leaflet on small screens
+   Tailwind utility classes may not provide a computed pixel height when parents
+   rely on % heights. Provide explicit min-heights so the map is visible below 1024px. */
+.map-wrap {
+  width: 100%;
+  /* default min-height for small screens */
+  min-height: 40vh;
+  height: auto;
+  /* allow content to size naturally */
+}
+
+/* If a parent sets 100% height (desktop), allow the leaflet container to fill it.
+   Otherwise, ensure it has a reasonable viewport-based height. */
+.leaflet-container {
+  min-height: 40vh;
+}
+
 .leaflet-div-icon {
   background: transparent;
   border: none;
+  /* allow pulse to overflow beyond icon bounds */
+  overflow: visible !important;
 }
 
 .leaflet-marker-icon {
   background: transparent;
   border: none;
+  overflow: visible !important;
+}
+
+/* User location pulsing marker (similar to Google Maps) */
+.user-pulse {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+}
+
+.user-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--neon-green, #10b981);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.user-pulse-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.18);
+  animation: user-pulse 1.6s infinite ease-out;
+}
+
+@keyframes user-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.9;
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(2.0);
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Ensure the div-icon container doesn't clip the pulse */
+.leaflet-user-marker {
+  background: transparent;
+  border: none;
+  /* ensure ring isn't clipped and marker is on top */
+  overflow: visible !important;
+  z-index: 99999 !important;
+  pointer-events: auto;
+}
+
+/* Media tweak: increase map min-height slightly on medium screens for comfort */
+@media (min-width: 640px) {
+  .map-wrap {
+    min-height: 50vh;
+  }
+
+  .leaflet-container {
+    min-height: 50vh;
+  }
+}
+
+@media (min-width: 1024px) {
+  .map-wrap {
+    min-height: 70vh;
+  }
+
+  .leaflet-container {
+    min-height: 70vh;
+  }
+}
+
+/* Map legend responsive sizing
+   - Use clamp for fluid scaling of width, padding and text
+   - Use smaller sizes on smaller viewports to avoid covering too much of the map
+*/
+.map-legend {
+  /* default: very compact base for small screens */
+  width: clamp(100px, 28vw, 180px);
+  padding: clamp(0.2rem, 0.9vw, 0.5rem);
+  border-radius: 0.375rem;
+  background-clip: padding-box;
+  font-size: 0.78rem;
+  /* animate vertical movement when top changes */
+  transition: top 220ms cubic-bezier(.2,.8,.2,1), transform 220ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease-in-out;
+  will-change: top, transform, opacity;
+}
+
+/* open/close animation for legend */
+.map-legend-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease-in-out;
+  pointer-events: auto;
+}
+
+.map-legend-closed {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), opacity 150ms ease-in-out;
+  pointer-events: none;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .map-legend,
+  .map-legend-mini {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* mini toggle small button visual */
+.map-legend-mini {
+  color: var(--color-card-foreground, #e2e8f0);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  box-shadow: 0 6px 18px rgba(9, 10, 11, 0.08);
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1), opacity 150ms ease-in-out;
+  will-change: transform, opacity;
+  transform-origin: center;
+  /* start slightly smaller and transparent; animate in on mount */
+  opacity: 0;
+  transform: scale(0.88) translateY(-4px);
+  animation: map-legend-mini-in 220ms cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+/* animate mini-toggle position when legend is opened/closed */
+.map-legend-mini {
+  transition: top 220ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease-in-out, transform 220ms cubic-bezier(.2,.8,.2,1);
+  will-change: top, opacity, transform;
+}
+
+.map-legend-mini--moved {
+  /* when legend is open the toggle moves up to 200px (but we fade it out) */
+  transform: translateY(0);
+}
+
+@keyframes map-legend-mini-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.map-legend-close {
+  color: var(--color-muted-foreground, #94a3b8);
+}
+
+.map-legend-header { padding-bottom: 0.25rem; }
+.map-legend-title {
+  /* scale title font; reduce on very small screens */
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+  margin: 0;
+}
+
+.map-legend-content {
+  font-size: clamp(0.72rem, 1.5vw, 0.85rem);
+}
+
+.map-legend-icon {
+  width: clamp(10px, 1.8vw, 12px) !important;
+  height: clamp(10px, 1.8vw, 12px) !important;
+}
+
+.map-legend-bar {
+  height: clamp(3px, 0.4vw, 4px) !important;
+  width: clamp(28px, 6vw, 40px) !important;
+}
+
+@media (min-width: 640px) {
+  .map-legend { width: clamp(180px, 24vw, 220px); }
+  .map-legend-content { font-size: clamp(0.78rem, 1.2vw, 0.9rem); }
+}
+
+@media (min-width: 1024px) {
+  .map-legend { width: clamp(200px, 22vw, 260px); }
+  .map-legend-content { font-size: clamp(0.85rem, 1.0vw, 1rem); }
+}
+
+/* Very small screens: make the legend tiny and compact */
+@media (max-width: 420px) {
+  .map-legend {
+    width: 92px !important;
+    padding: 0.18rem !important;
+    border-radius: 0.35rem;
+  }
+
+  .map-legend-title { font-size: 0.78rem !important; }
+  .map-legend-content { font-size: 0.62rem !important; }
+
+  .map-legend-icon { width: 8px !important; height: 8px !important; }
+  .map-legend-bar { width: 22px !important; height: 3px !important; }
+
+  /* Reduce spacing inside legend rows and between elements */
+  .map-legend-content { gap: 0.3rem; }
+  .map-legend-content .flex { gap: 0.3rem; }
 }

@@ -1,3 +1,18 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    // Treat CSS files as PostCSS so editor understands Tailwind/PostCSS at-rules
+    "files.associations": {
+        "*.css": "postcss",
+        "*.pcss": "postcss"
+    },
+    // Ignore unknown at-rules from Tailwind/PostCSS in editor linting
+    "css.lint.unknownAtRules": "ignore",
+    "less.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore",
+    // Ignore unknown properties (modern color functions like oklch) in editor linting
+    "css.lint.unknownProperties": "ignore",
+    "scss.lint.unknownProperties": "ignore",
+    "less.lint.unknownProperties": "ignore",
+    // Disable built-in CSS validation to avoid conflicts with PostCSS/Tailwind
+    "css.validate": false
 }

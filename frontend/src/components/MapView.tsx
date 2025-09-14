@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ArrowLeft, MapPin, Clock, Navigation } from "lucide-react";
+import { Crosshair } from "lucide-react";
+
 
 // Fix for default markers (uses public/marker-icon.png and public/marker-shadow.png)
 const defaultIcon = L.icon({
@@ -48,6 +50,7 @@ type LatLngWithAccuracy = { lat: number; lng: number; ts?: number; accuracy?: nu
 export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   const [selectedBus, setSelectedBus] = useState<BusData>(bus);
   const [map, setMap] = useState<L.Map | null>(null);
+  const [legendOpen, setLegendOpen] = useState<boolean>(true);
   const [userPos, setUserPos] = useState<LatLngWithAccuracy | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
@@ -78,6 +81,15 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     };
   }, []);
 
+  // Default the legend to open on desktop and collapsed on small screens
+  useEffect(() => {
+    try {
+      setLegendOpen(window.innerWidth > 420);
+    } catch (e) {
+      setLegendOpen(true);
+    }
+  }, []);
+
   const selectedBusPosition: [number, number] = [
     selectedBus.currentLocation.lat,
     selectedBus.currentLocation.lng,
@@ -87,6 +99,29 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
   const centerMapOnUser = () => {
     if (map && userPos) map.setView([userPos.lat, userPos.lng], 15, { animate: true });
+  };
+
+  // When the map container's size changes (responsive layout / window resize)
+  // Leaflet sometimes needs an explicit invalidateSize() call so tiles render.
+  useEffect(() => {
+    if (!map) return;
+    // Invalidate size once so Leaflet recalculates when the map mounts
+    setTimeout(() => map.invalidateSize(), 0);
+    const onResize = () => {
+      // small timeout to let the layout settle
+      setTimeout(() => map.invalidateSize(), 50);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [map]);
+
+  // Helper to create an SVG pulsing icon as a data URL. Uses SMIL animations so it doesn't
+  // depend on external CSS being applied to Leaflet's divIcon.
+  const createPulsingSvgIcon = (color = '#1976d2') => {
+    const size = 40;
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>\n  <defs>\n    <radialGradient id='g' cx='50%' cy='50%' r='50%'>\n      <stop offset='0%' stop-color='${color}' stop-opacity='0.9'/>\n      <stop offset='100%' stop-color='${color}' stop-opacity='0.3'/>\n    </radialGradient>\n  </defs>\n  <g transform='translate(${size / 2}, ${size / 2})'>\n    <!-- animated ring -->\n    <circle r='6' fill='none' stroke='${color}' stroke-opacity='0.25' stroke-width='3'>\n      <animate attributeName='r' from='6' to='18' dur='1.6s' repeatCount='indefinite' />\n      <animate attributeName='opacity' from='0.9' to='0' dur='1.6s' repeatCount='indefinite' />\n    </circle>\n    <!-- solid dot -->\n    <circle r='6' fill='${color}' />\n  </g>\n</svg>`;
+
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   };
 
   return (
@@ -100,15 +135,22 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         </div>
       </header>
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)]">
+      <div className="flex flex-col lg:flex-row min-h-[60vh] lg:h-[calc(100vh-120px)]">
         <div className="flex-1 lg:w-3/4 relative">
-          <div className="absolute inset-0 m-4" style={{ height: "100%", width: "100%" }}>
-            <div className="h-full w-full map-wrap relative z-0" style={{ borderRadius: "0.5rem", overflow: 'hidden' }}>
+          <div className="p-4 h-full w-full">
+            {/*
+              Ensure the map container always has a non-zero explicit height on small screens.
+              Tailwind percentage heights rely on parent having a defined height; set min-heights
+              across breakpoints so the map is visible under 1024px.
+            */}
+            <div className="map-wrap relative z-0 rounded-md overflow-visible" style={{ minHeight: '40vh', height: 'auto', clipPath: 'inset(0 round 0.5rem)' }}>
+              {/* Using style height ensures Leaflet has a concrete pixel height to render into */}
               <MapContainer
                 center={selectedBusPosition}
                 zoom={13}
                 scrollWheelZoom
-                style={{ height: "100%", width: "100%", borderRadius: "0.5rem", zIndex: 0 }}
+                className="w-full rounded-md"
+                style={{ height: '100%', zIndex: 0 }}
                 ref={setMap}
               >
                 <TileLayer
@@ -161,30 +203,72 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
                 {userPos && (
                   <>
-                    <Marker position={[userPos.lat, userPos.lng]} zIndexOffset={1000}>
-                      <Popup>Your current location</Popup>
+                    {/* Pulsing user marker implemented as an SVG data-url icon (SMIL animation) */}
+                    <Marker
+                      position={[userPos.lat, userPos.lng]}
+                      icon={L.icon({
+                        iconUrl: createPulsingSvgIcon(),
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 20],
+                        className: 'leaflet-user-marker'
+                      })}
+                      zIndexOffset={100000}
+                    >
+                      <Popup>You are here</Popup>
                     </Marker>
-                    <Circle center={[userPos.lat, userPos.lng]} radius={15} pathOptions={{ color: "#1976d2", fillColor: "#1976d2", fillOpacity: 0.08, weight: 1 }} />
                   </>
                 )}
               </MapContainer>
 
               {/* Floating overlays: legend, badges, center button */}
-              <Card className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border-border/50 w-48 z-[9999] pointer-events-auto">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Map Legend</CardTitle>
+              {/* Collapsible legend: show a mini toggle when collapsed, the full card when open */}
+              {/* mini toggle shown when closed */}
+              {/* Mini-toggle always rendered so we can animate its vertical position when the legend opens */}
+              <button
+                aria-label={legendOpen ? "Close legend" : "Open legend"}
+                onClick={() => setLegendOpen((s) => !s)}
+                className={`absolute z-[9999] map-legend-mini p-2 rounded-full bg-card/90 border border-border/60 shadow-sm ${legendOpen ? 'map-legend-mini--moved' : ''}`}
+                style={{ top: `var(${legendOpen ? '--map-legend-top-open' : '--map-legend-top-closed'})`, left: '1rem', opacity: legendOpen ? 0 : 1 }}
+              >
+                {/* small legend icon (three lines + dot) */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="4" y="5" width="12" height="2" rx="1" fill="currentColor" />
+                  <circle cx="19" cy="6" r="2" fill="currentColor" opacity="0.8" />
+                  <rect x="4" y="11" width="12" height="2" rx="1" fill="currentColor" opacity="0.9" />
+                  <rect x="4" y="17" width="8" height="2" rx="1" fill="currentColor" opacity="0.9" />
+                </svg>
+              </button>
+
+              {/* Animated legend card: always present but toggles open/closed classes */}
+              <Card
+                className={`absolute bg-card/90 backdrop-blur-sm border-border/50 map-legend z-[9999] pointer-events-auto ${legendOpen ? 'map-legend-open' : 'map-legend-closed'}`}
+                style={{ left: '1rem', top: `var(${legendOpen ? '--map-legend-top-open' : '--map-legend-top-closed'})` }}
+                aria-hidden={!legendOpen}
+              >
+                <button
+                  aria-label="Close legend"
+                  onClick={() => setLegendOpen(false)}
+                  className="absolute top-2 right-2 map-legend-close p-1 rounded hover:bg-muted/10"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <CardHeader className="pb-2 map-legend-header">
+                  <CardTitle className="text-sm map-legend-title">Map Legend</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 map-legend-content">
                   <div className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200"></div>
+                    <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200 map-legend-icon"></div>
                     <span>Selected Bus (Active)</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full bg-gray-400 opacity-60"></div>
+                    <div className="w-3 h-3 rounded-full bg-gray-400 opacity-60 map-legend-icon"></div>
                     <span>Other Buses (Dimmed)</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs pt-1 border-t border-border/50">
-                    <div className="w-4 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                    <div className="w-4 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600 map-legend-bar"></div>
                     <span>Active Route</span>
                   </div>
                 </CardContent>
@@ -194,18 +278,17 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 <div className="w-2 h-2 rounded-full bg-green-500" /> Live Tracking
               </Badge>
 
-              <Badge variant="outline" className="absolute bottom-0 right-4 gap-1 
-              bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto">
-                <button onClick={centerMapOnUser} className="bg-white/95 dark:bg-slate-800/90 px-3 py-2 rounded-md shadow-md hover:shadow-lg flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-primary" /> Center on me
+              <Badge
+                variant="outline"
+                className="absolute bottom-0 right-4 bg-transparent border-none shadow-none z-[9999] pointer-events-auto rounded-full mx-2 mb-2 p-0">
+                <button
+                  onClick={centerMapOnUser}
+                  className="bg-white dark:bg-slate-800/90 p-3 rounded-full 
+              shadow-md hover:shadow-lg flex items-center justify-center py-3">
+                  <Crosshair className="w-5 h-5 text-gray-700 dark:text-gray-200" />
                 </button>
               </Badge>
 
-              <div className="absolute bottom-4 right-4 z-[9999] pointer-events-auto">
-                <button onClick={centerMapOnUser} className="bg-white/95 dark:bg-slate-800/90 px-3 py-2 rounded-md shadow-md hover:shadow-lg flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-primary" /> Center on me
-                </button>
-              </div>
             </div>
           </div>
         </div>
