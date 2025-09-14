@@ -97,47 +97,171 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   useEffect(() => {
     if (!("geolocation" in navigator)) {
       console.warn("Geolocation is not supported by your browser");
+      setLocationStatus("Geolocation not supported by your browser");
       return;
+    }
+
+    console.log("Starting geolocation tracking...");
+    setLocationStatus("Requesting location permission...");
+
+    // Check if we already have permission
+    if (navigator.permissions) {
+      navigator.permissions
+        .query({ name: "geolocation" })
+        .then((result) => {
+          console.log("Geolocation permission status:", result.state);
+          if (result.state === "denied") {
+            setLocationStatus(
+              "Location permission denied. Please enable location access in your browser settings."
+            );
+          } else if (result.state === "prompt") {
+            setLocationStatus("Please allow location access when prompted...");
+          }
+        })
+        .catch((err) => {
+          console.log("Permission query failed:", err);
+        });
     }
 
     let positionUpdateCount = 0;
     let bestAccuracy = Infinity;
     let fallbackPosition: LatLngWithAccuracy | null = null;
+    let geolocationTimeout: NodeJS.Timeout | null = null;
+
+    // Set a timeout to handle cases where geolocation takes too long
+    geolocationTimeout = setTimeout(() => {
+      if (!userPos) {
+        console.log(
+          "Geolocation timeout - no position received, trying fallback"
+        );
+        setLocationStatus("Trying fallback location method...");
+
+        // Try with less strict options as fallback
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            console.log(
+              "Fallback position accuracy:",
+              pos.coords.accuracy,
+              "m"
+            );
+            setUserPos({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              ts: pos.timestamp,
+              accuracy: pos.coords.accuracy,
+            });
+            setLocationStatus(
+              `Location found! Accuracy: ±${Math.round(pos.coords.accuracy)}m`
+            );
+          },
+          (error) => {
+            console.warn("Fallback position also failed:", error);
+            setLocationStatus(
+              "Unable to get location. Please check your browser settings and try again."
+            );
+          },
+          {
+            enableHighAccuracy: false, // Less strict
+            maximumAge: 60000, // Allow cached position up to 1 minute
+            timeout: 15000, // Shorter timeout
+          }
+        );
+      }
+    }, 15000); // 15 second timeout
 
     // First get a quick initial position with high accuracy
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         console.log("Initial position accuracy:", pos.coords.accuracy, "m");
-        if (pos.coords.accuracy <= 50) {
-          // Accept initial position if accuracy is reasonable
-          setUserPos({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            ts: pos.timestamp,
-            accuracy: pos.coords.accuracy,
-          });
-          bestAccuracy = pos.coords.accuracy;
+        if (geolocationTimeout) {
+          clearTimeout(geolocationTimeout);
+          geolocationTimeout = null;
+        }
+
+        // Accept any initial position to get something on the map
+        console.log("=== GPS DIAGNOSTICS ===");
+        console.log("Position accuracy:", pos.coords.accuracy, "m");
+        console.log(
+          "Position coordinates:",
+          pos.coords.latitude,
+          pos.coords.longitude
+        );
+        console.log("Timestamp:", new Date(pos.timestamp).toLocaleString());
+        console.log("Altitude:", pos.coords.altitude);
+        console.log("Altitude accuracy:", pos.coords.altitudeAccuracy);
+        console.log("Heading:", pos.coords.heading);
+        console.log("Speed:", pos.coords.speed);
+
+        // Detect WiFi positioning (very poor accuracy, no altitude/speed/heading)
+        const isWifiPositioning =
+          pos.coords.accuracy > 10000 &&
+          pos.coords.altitude === null &&
+          pos.coords.speed === null &&
+          pos.coords.heading === null;
+
+        if (isWifiPositioning) {
+          console.log("⚠️  DETECTED: WiFi positioning (very inaccurate)");
+          console.log("💡 SOLUTION: Switch to mobile data for GPS accuracy");
+        } else if (pos.coords.accuracy > 1000) {
+          console.log("⚠️  DETECTED: Poor GPS signal");
+        } else {
+          console.log("✅ DETECTED: Good GPS signal");
+        }
+        console.log("=========================");
+
+        setUserPos({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ts: pos.timestamp,
+          accuracy: pos.coords.accuracy,
+        });
+        bestAccuracy = pos.coords.accuracy;
+
+        if (isWifiPositioning) {
+          setLocationStatus(
+            `WiFi positioning detected! Accuracy: ±${Math.round(
+              pos.coords.accuracy / 1000
+            )}km. Switch to mobile data for GPS accuracy.`
+          );
+        } else if (pos.coords.accuracy <= 50) {
           setLocationStatus(
             `Location found! Accuracy: ±${Math.round(pos.coords.accuracy)}m`
           );
         } else {
-          // Store as fallback if accuracy is poor
-          fallbackPosition = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            ts: pos.timestamp,
-            accuracy: pos.coords.accuracy,
-          };
           setLocationStatus(
-            `Initial location found but accuracy is poor (±${Math.round(
+            `Initial location found! Accuracy: ±${Math.round(
               pos.coords.accuracy
-            )}m). Improving...`
+            )}m (improving...)`
           );
         }
       },
       (error) => {
-        console.warn("Initial position failed:", error.message);
-        setLocationStatus("Failed to get initial location. Trying again...");
+        console.warn("Initial position failed:", error);
+        console.warn("Error code:", error.code);
+        console.warn("Error message:", error.message);
+
+        if (geolocationTimeout) {
+          clearTimeout(geolocationTimeout);
+          geolocationTimeout = null;
+        }
+
+        let errorMessage = "Failed to get initial location. ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage =
+              "Location permission denied. Please enable location access in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage =
+              "Location information is unavailable. Please check your device settings.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+          default:
+            errorMessage = `Location error: ${error.message}`;
+        }
+        setLocationStatus(errorMessage);
       },
       {
         enableHighAccuracy: true, // Use high accuracy from the start
@@ -150,13 +274,30 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         positionUpdateCount++;
-        console.log(
-          `Position update #${positionUpdateCount}, accuracy: ${pos.coords.accuracy}m`
-        );
+        console.log(`=== POSITION UPDATE #${positionUpdateCount} ===`);
+        console.log("Accuracy:", pos.coords.accuracy, "m");
+        console.log("Coordinates:", pos.coords.latitude, pos.coords.longitude);
+        console.log("Altitude:", pos.coords.altitude);
+        console.log("Speed:", pos.coords.speed);
+        console.log("Heading:", pos.coords.heading);
+        console.log("Best accuracy so far:", bestAccuracy, "m");
 
-        // More lenient accuracy filtering - accept positions with accuracy up to 30m
-        const MAX_ACCEPTABLE_ACCURACY = 30; // meters - more reasonable threshold
+        // Detect WiFi positioning in updates too
+        const isWifiPositioning =
+          pos.coords.accuracy > 10000 &&
+          pos.coords.altitude === null &&
+          pos.coords.speed === null &&
+          pos.coords.heading === null;
+
+        if (isWifiPositioning) {
+          console.log("⚠️  WiFi positioning detected in update");
+        }
+        console.log("=====================================");
+
+        // More lenient accuracy filtering - accept positions with accuracy up to 100m initially
+        const MAX_ACCEPTABLE_ACCURACY = 100; // meters - more lenient threshold for initial fix
         const IDEAL_ACCURACY = 10; // meters - ideal accuracy we want
+        const POOR_ACCURACY_THRESHOLD = 1000; // meters - very poor accuracy, but still usable
 
         // Always store the best accuracy we've seen
         if (pos.coords.accuracy < bestAccuracy) {
@@ -178,6 +319,27 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           });
           setLocationStatus(
             `High accuracy location! ±${Math.round(pos.coords.accuracy)}m`
+          );
+          return;
+        }
+
+        // For the first few updates, accept any position to get something on the map
+        if (positionUpdateCount <= 3) {
+          console.log(
+            "Accepting initial position (update #" + positionUpdateCount + "):",
+            pos.coords.accuracy,
+            "m"
+          );
+          setUserPos({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            ts: pos.timestamp,
+            accuracy: pos.coords.accuracy,
+          });
+          setLocationStatus(
+            `Initial location found! Accuracy: ±${Math.round(
+              pos.coords.accuracy
+            )}m (improving...)`
           );
           return;
         }
@@ -208,10 +370,37 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               console.log(
                 "Updating to better position. New accuracy:",
                 pos.coords.accuracy,
-                "m"
+                "m (was:",
+                prevPos.accuracy,
+                "m)"
               );
               setLocationStatus(
                 `Location improved! Accuracy: ±${Math.round(
+                  pos.coords.accuracy
+                )}m`
+              );
+              return {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                ts: pos.timestamp,
+                accuracy: pos.coords.accuracy,
+              };
+            }
+
+            // If current position is very poor (>1000m) and new one is better, accept it
+            if (
+              prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
+              pos.coords.accuracy < prevPos.accuracy
+            ) {
+              console.log(
+                "Updating from very poor position. New accuracy:",
+                pos.coords.accuracy,
+                "m (was:",
+                prevPos.accuracy,
+                "m)"
+              );
+              setLocationStatus(
+                `Location improving! Accuracy: ±${Math.round(
                   pos.coords.accuracy
                 )}m`
               );
@@ -258,8 +447,62 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           console.log(
             "Rejecting low accuracy position:",
             pos.coords.accuracy,
-            "m"
+            "m (threshold:",
+            MAX_ACCEPTABLE_ACCURACY,
+            "m)"
           );
+          // If we have a position but it's very poor, show that we're still trying to improve
+          if (userPos && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
+            setLocationStatus(
+              `Location found but accuracy is poor (±${Math.round(
+                userPos.accuracy
+              )}m). Improving...`
+            );
+          }
+        }
+
+        // After 10 position updates, if accuracy is still very poor, try restarting with different settings
+        if (positionUpdateCount >= 10 && userPos && userPos.accuracy > 10000) {
+          console.log(
+            "Accuracy still very poor after 10 updates, trying GPS-only mode"
+          );
+          setLocationStatus("Trying GPS-only mode for better accuracy...");
+
+          // Clear current watch and restart with GPS-only settings
+          if (watchIdRef.current !== null) {
+            navigator.geolocation.clearWatch(watchIdRef.current);
+          }
+
+          // Restart with more aggressive GPS settings
+          const newWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+              console.log(
+                "GPS-only position update:",
+                pos.coords.accuracy,
+                "m"
+              );
+              if (pos.coords.accuracy < userPos.accuracy) {
+                setUserPos({
+                  lat: pos.coords.latitude,
+                  lng: pos.coords.longitude,
+                  ts: pos.timestamp,
+                  accuracy: pos.coords.accuracy,
+                });
+                setLocationStatus(
+                  `GPS mode! Accuracy: ±${Math.round(pos.coords.accuracy)}m`
+                );
+              }
+            },
+            (error) => {
+              console.warn("GPS-only mode failed:", error);
+            },
+            {
+              enableHighAccuracy: true,
+              maximumAge: 0,
+              timeout: 60000, // Longer timeout for GPS
+            }
+          );
+          watchIdRef.current = newWatchId;
         }
 
         // After 10 position updates, if we still don't have a good position, use fallback
@@ -274,25 +517,29 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         }
       },
       (error) => {
-        console.error("Geolocation error:", error.message);
+        console.error("Geolocation watch error:", error);
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
+
+        let errorMessage = "Location tracking error. ";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            alert(
-              "Please enable location services to see your position on the map."
-            );
+            errorMessage =
+              "Location permission denied. Please enable location access in your browser settings.";
+            setLocationStatus(errorMessage);
             break;
           case error.POSITION_UNAVAILABLE:
-            alert(
-              "Location information is unavailable. Please check your device settings."
-            );
+            errorMessage =
+              "Location information is unavailable. Please check your device settings.";
+            setLocationStatus(errorMessage);
             break;
           case error.TIMEOUT:
-            alert("The request to get user location timed out.");
+            errorMessage = "Location request timed out. Please try again.";
+            setLocationStatus(errorMessage);
             break;
           default:
-            alert(
-              "An unknown error occurred while trying to get your location."
-            );
+            errorMessage = `Location error: ${error.message}`;
+            setLocationStatus(errorMessage);
             break;
         }
       },
@@ -307,6 +554,10 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
+      }
+      if (geolocationTimeout) {
+        clearTimeout(geolocationTimeout);
+        geolocationTimeout = null;
       }
     };
   }, []);
@@ -328,8 +579,58 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   const formatLastUpdated = () => new Date().toLocaleTimeString();
 
   const centerMapOnUser = () => {
-    if (map && userPos)
+    console.log("Center button clicked");
+    console.log("Map available:", !!map);
+    console.log("User position available:", !!userPos);
+    console.log("User position:", userPos);
+
+    if (map && userPos) {
+      console.log("Centering map on user position:", userPos.lat, userPos.lng);
       map.setView([userPos.lat, userPos.lng], 15, { animate: true });
+    } else if (!userPos) {
+      console.log("No user position available yet");
+      setLocationStatus("No location available yet. Please wait...");
+
+      // Try to get location again if it's not available
+      if ("geolocation" in navigator) {
+        console.log("Attempting to get location again...");
+        setLocationStatus("Retrying location request...");
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            console.log("Retry position accuracy:", pos.coords.accuracy, "m");
+            setUserPos({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              ts: pos.timestamp,
+              accuracy: pos.coords.accuracy,
+            });
+            setLocationStatus(
+              `Location found! Accuracy: ±${Math.round(pos.coords.accuracy)}m`
+            );
+            // Center the map after getting the position
+            if (map) {
+              map.setView([pos.coords.latitude, pos.coords.longitude], 15, {
+                animate: true,
+              });
+            }
+          },
+          (error) => {
+            console.warn("Retry position failed:", error.message);
+            setLocationStatus(
+              "Location request failed. Please check permissions."
+            );
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000,
+          }
+        );
+      }
+    } else if (!map) {
+      console.log("Map not ready yet");
+      setLocationStatus("Map not ready yet. Please wait...");
+    }
   };
 
   // When the map container's size changes (responsive layout / window resize)
@@ -640,16 +941,156 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 {locationStatus}
               </Badge>
 
+              {/* Manual Location Request Button - only show if no location */}
+              {!userPos && (
+                <Badge
+                  variant="outline"
+                  className="absolute top-28 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto"
+                >
+                  <button
+                    onClick={() => {
+                      console.log("Manual location request clicked");
+                      setLocationStatus("Requesting location...");
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          console.log(
+                            "Manual position accuracy:",
+                            pos.coords.accuracy,
+                            "m"
+                          );
+                          setUserPos({
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            ts: pos.timestamp,
+                            accuracy: pos.coords.accuracy,
+                          });
+                          setLocationStatus(
+                            `Location found! Accuracy: ±${Math.round(
+                              pos.coords.accuracy
+                            )}m`
+                          );
+                        },
+                        (error) => {
+                          console.warn("Manual position failed:", error);
+                          setLocationStatus(
+                            "Location request failed. Please check permissions."
+                          );
+                        },
+                        {
+                          enableHighAccuracy: true,
+                          maximumAge: 0,
+                          timeout: 10000,
+                        }
+                      );
+                    }}
+                    className="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                  >
+                    Request Location
+                  </button>
+                </Badge>
+              )}
+
+              {/* WiFi Positioning Warning - show if accuracy is very poor */}
+              {userPos && userPos.accuracy > 10000 && (
+                <Badge
+                  variant="outline"
+                  className="absolute top-28 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto max-w-xs"
+                >
+                  <div className="text-xs text-center p-2">
+                    <div className="font-semibold text-orange-600 mb-1">
+                      ⚠️ WiFi Positioning
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-300">
+                      Switch to mobile data for accurate GPS location
+                    </div>
+                  </div>
+                </Badge>
+              )}
+
+              {/* Force GPS Button - show if location exists but accuracy is poor */}
+              {userPos &&
+                userPos.accuracy > 1000 &&
+                userPos.accuracy <= 10000 && (
+                  <Badge
+                    variant="outline"
+                    className="absolute top-28 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto"
+                  >
+                    <button
+                      onClick={() => {
+                        console.log("Force GPS clicked");
+                        setLocationStatus("Forcing GPS mode...");
+
+                        // Clear current watch
+                        if (watchIdRef.current !== null) {
+                          navigator.geolocation.clearWatch(watchIdRef.current);
+                        }
+
+                        // Force GPS with very aggressive settings
+                        const newWatchId = navigator.geolocation.watchPosition(
+                          (pos) => {
+                            console.log(
+                              "Force GPS position:",
+                              pos.coords.accuracy,
+                              "m"
+                            );
+                            setUserPos({
+                              lat: pos.coords.latitude,
+                              lng: pos.coords.longitude,
+                              ts: pos.timestamp,
+                              accuracy: pos.coords.accuracy,
+                            });
+                            setLocationStatus(
+                              `GPS forced! Accuracy: ±${Math.round(
+                                pos.coords.accuracy
+                              )}m`
+                            );
+                          },
+                          (error) => {
+                            console.warn("Force GPS failed:", error);
+                            setLocationStatus(
+                              "GPS force failed. Try moving to an open area."
+                            );
+                          },
+                          {
+                            enableHighAccuracy: true,
+                            maximumAge: 0,
+                            timeout: 120000, // 2 minutes timeout
+                          }
+                        );
+                        watchIdRef.current = newWatchId;
+                      }}
+                      className="px-2 py-1 text-xs bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors"
+                    >
+                      Force GPS
+                    </button>
+                  </Badge>
+                )}
+
               <Badge
                 variant="outline"
                 className="absolute bottom-0 right-4 bg-transparent border-none shadow-none z-[9999] pointer-events-auto rounded-full mx-2 mb-2 p-0"
               >
                 <button
                   onClick={centerMapOnUser}
-                  className="bg-white dark:bg-slate-800/90 p-3 rounded-full 
-              shadow-md hover:shadow-lg flex items-center justify-center py-3"
+                  disabled={!map || !userPos}
+                  className={`p-3 rounded-full shadow-md flex items-center justify-center py-3 transition-all duration-200 ${
+                    map && userPos
+                      ? "bg-white dark:bg-slate-800/90 hover:shadow-lg cursor-pointer"
+                      : "bg-gray-300 dark:bg-gray-600 cursor-not-allowed opacity-50"
+                  }`}
+                  title={
+                    map && userPos
+                      ? "Center on your location"
+                      : "Location not available yet"
+                  }
                 >
-                  <Crosshair className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                  <Crosshair
+                    className={`w-5 h-5 ${
+                      map && userPos
+                        ? "text-gray-700 dark:text-gray-200"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  />
                 </button>
               </Badge>
             </div>
