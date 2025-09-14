@@ -6,12 +6,12 @@ import 'leaflet/dist/leaflet.css';
 
 // Fix default marker images for Vite/TS projects
 // If your build complains about these imports, add src/global.d.ts with "declare module '*.png';"
-import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
-import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
-L.Icon.Default.mergeOptions({
-    iconUrl: markerIconUrl as string,
-    shadowUrl: markerShadowUrl as string,
-});
+// import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+// import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
+// L.Icon.Default.mergeOptions({
+//     iconUrl: markerIconUrl as string,
+//     shadowUrl: markerShadowUrl as string,
+// });
 
 type LatLng = { lat: number; lng: number; ts?: number };
 

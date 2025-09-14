@@ -47,6 +47,22 @@ interface MapViewProps {
 
 type LatLngWithAccuracy = { lat: number; lng: number; ts?: number; accuracy?: number };
 
+// Calculate distance between two points in meters using the Haversine formula
+function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // in meters
+}
+
 export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   const [selectedBus, setSelectedBus] = useState<BusData>(bus);
   const [map, setMap] = useState<L.Map | null>(null);
@@ -60,17 +76,96 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   }, []);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-    const id = navigator.geolocation.watchPosition(
-      (pos) =>
+    if (!("geolocation" in navigator)) {
+      console.warn("Geolocation is not supported by your browser");
+      return;
+    }
+
+    // First get a quick initial position
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
         setUserPos({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           ts: pos.timestamp,
           accuracy: pos.coords.accuracy,
-        }),
-      () => { },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+        });
+      },
+      null,
+      { maximumAge: 0, timeout: 2000, enableHighAccuracy: false }
+    );
+    
+    // Then start watching with high accuracy
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        // Implement strict accuracy filtering
+        const MAX_ACCEPTABLE_ACCURACY = 15; // meters - reject anything less accurate than this
+
+        if (pos.coords.accuracy > MAX_ACCEPTABLE_ACCURACY) {
+          console.log("Skipping low accuracy position:", pos.coords.accuracy, "m");
+          return; // Skip low accuracy readings
+        }
+
+        setUserPos(prevPos => {
+          // For initial position, only accept if accuracy is good
+          if (!prevPos) {
+            if (pos.coords.accuracy <= MAX_ACCEPTABLE_ACCURACY) {
+              console.log("Initial position set with accuracy:", pos.coords.accuracy, "m");
+              return {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                ts: pos.timestamp,
+                accuracy: pos.coords.accuracy,
+              };
+            }
+            return null;
+          }
+
+          const distance = getDistanceFromLatLonInMeters(
+            prevPos.lat,
+            prevPos.lng,
+            pos.coords.latitude,
+            pos.coords.longitude
+          );
+
+          // Only update if:
+          // 1. New position is significantly more accurate (at least 20% better) OR
+          // 2. Position has changed by more than 5 meters AND accuracy is good
+          if ((prevPos.accuracy && pos.coords.accuracy < prevPos.accuracy * 0.8) ||
+              (distance > 5 && pos.coords.accuracy <= MAX_ACCEPTABLE_ACCURACY)) {
+            console.log("Updating position. New accuracy:", pos.coords.accuracy, "m");
+            return {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              ts: pos.timestamp,
+              accuracy: pos.coords.accuracy,
+            };
+          }
+          return prevPos;
+        });
+      },
+      (error) => {
+        console.error("Geolocation error:", error.message);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert("Please enable location services to see your position on the map.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable. Please check your device settings.");
+            break;
+          case error.TIMEOUT:
+            alert("The request to get user location timed out.");
+            break;
+          default:
+            alert("An unknown error occurred while trying to get your location.");
+            break;
+        }
+      },
+      { 
+        enableHighAccuracy: true,    // Force GPS usage
+        maximumAge: 0,              // Never use cached positions
+        timeout: 20000              // Balance between getting fix and responsiveness
+      }
     );
     watchIdRef.current = id;
     return () => {
@@ -203,6 +298,17 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
                 {userPos && (
                   <>
+                    {/* Accuracy circle */}
+                    <Circle
+                      center={[userPos.lat, userPos.lng]}
+                      radius={userPos.accuracy || 0}
+                      pathOptions={{
+                        color: '#1976d2',
+                        fillColor: '#1976d2',
+                        fillOpacity: 0.1,
+                        weight: 1
+                      }}
+                    />
                     {/* Pulsing user marker implemented as an SVG data-url icon (SMIL animation) */}
                     <Marker
                       position={[userPos.lat, userPos.lng]}
@@ -214,7 +320,14 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                       })}
                       zIndexOffset={100000}
                     >
-                      <Popup>You are here</Popup>
+                      <Popup>
+                        <div>
+                          <p className="font-semibold">Your Location</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Accuracy: ±{Math.round(userPos.accuracy || 0)}m
+                          </p>
+                        </div>
+                      </Popup>
                     </Marker>
                   </>
                 )}
