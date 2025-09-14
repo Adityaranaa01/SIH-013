@@ -1,15 +1,10 @@
-import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ThemeToggle } from "./ThemeToggle";
 import { Users, Bus, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 
-interface LandingPageProps {
-  onUserSelect: () => void;
-  onDriverSelect: () => void;
-}
-
-export function LandingPage({ onUserSelect, onDriverSelect }: LandingPageProps) {
+export function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative overflow-hidden">
       {/* Background Effects */}
@@ -46,47 +41,51 @@ export function LandingPage({ onUserSelect, onDriverSelect }: LandingPageProps) 
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl w-full">
-          <Card className="group hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer" onClick={onUserSelect}>
-            <CardHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl">I'm a Passenger</CardTitle>
-              <CardDescription className="text-base">
-                Track buses, check ETAs, and plan your journey
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button 
-                size="lg" 
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Access Dashboard
-              </Button>
-            </CardContent>
-          </Card>
+          <Link to="/user" className="block">
+            <Card className="group hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-2xl">I'm a Passenger</CardTitle>
+                <CardDescription className="text-base">
+                  Track buses, check ETAs, and plan your journey
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <Button 
+                  size="lg" 
+                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Access Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="group hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer" onClick={onDriverSelect}>
-            <CardHeader className="text-center pb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Bus className="w-8 h-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl">I'm a Driver</CardTitle>
-              <CardDescription className="text-base">
-                Enable GPS tracking and broadcast your location
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button 
-                size="lg" 
-                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Start Tracking
-              </Button>
-            </CardContent>
-          </Card>
+          <Link to="/driver" className="block">
+            <Card className="group hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Bus className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-2xl">I'm a Driver</CardTitle>
+                <CardDescription className="text-base">
+                  Enable GPS tracking and broadcast your location
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <Button 
+                  size="lg" 
+                  className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Start Tracking
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </main>
     </div>
