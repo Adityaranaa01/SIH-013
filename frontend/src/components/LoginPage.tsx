@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AuthAPI } from '../lib/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -28,13 +29,11 @@ export function LoginPage({ onLogin, theme = 'light', onThemeToggle }: LoginPage
     setError('');
     setIsLoading(true);
 
-    // In a real app, replace with an authentication API call.
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (adminId && password) {
-      onLogin({ id: adminId, name: adminId });
-    } else {
-      setError('Invalid admin ID or password.');
+    try {
+      const admin = await AuthAPI.login(adminId, password);
+      onLogin(admin);
+    } catch (err: any) {
+      setError(err?.message || 'Login failed');
     }
     
     setIsLoading(false);

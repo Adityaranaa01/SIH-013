@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { RouteFormModal } from './RouteFormModal';
+import { RoutesAPI } from '../lib/api';
 
 interface Stop {
   stopNumber: number;
@@ -16,7 +17,9 @@ interface Route {
   routeId: string;
   start: string;
   end: string;
+  name?: string | null;
   stops: Stop[];
+  stopsCount?: number; // derived from backend listing; keep in sync on save
 }
 
 interface RoutesPageProps {
@@ -24,8 +27,14 @@ interface RoutesPageProps {
 }
 
 export function RoutesPage({ onViewRoute }: RoutesPageProps) {
-  // Start with no routes; expect data to be added via form or fetched from backend
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    RoutesAPI.list().then(list => {
+      setRoutes(list.map(r => ({ routeId: r.routeId, start: r.start, end: r.end, name: (r as any).name ?? null, stops: [], stopsCount: (r as any).stopsCount ?? 0 })));
+    }).finally(() => setLoading(false));
+  }, []);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
 
@@ -39,15 +48,19 @@ export function RoutesPage({ onViewRoute }: RoutesPageProps) {
     setIsRouteModalOpen(true);
   };
 
-  const handleDeleteRoute = (routeId: string) => {
+  const handleDeleteRoute = async (routeId: string) => {
+    await RoutesAPI.remove(routeId);
     setRoutes(routes.filter(r => r.routeId !== routeId));
   };
 
-  const handleSaveRoute = (route: Route) => {
+  const handleSaveRoute = async (route: Route) => {
     if (editingRoute) {
-      setRoutes(routes.map(r => r.routeId === route.routeId ? route : r));
+      await RoutesAPI.update(route.routeId, { start: route.start, end: route.end, name: route.name ?? null });
+      await RoutesAPI.replaceStops(route.routeId, route.stops.map(s => ({ stopNumber: s.stopNumber, name: s.name, lat: s.lat, long: s.long })));
+      setRoutes(routes.map(r => r.routeId === route.routeId ? { ...route, stopsCount: route.stops?.length ?? r.stopsCount ?? 0 } : r));
     } else {
-      setRoutes([...routes, route]);
+      await RoutesAPI.create({ routeId: route.routeId, start: route.start, end: route.end, name: route.name ?? null, stops: route.stops });
+      setRoutes([...routes, { ...route, stopsCount: route.stops?.length ?? 0 }]);
     }
   };
 
@@ -74,11 +87,14 @@ export function RoutesPage({ onViewRoute }: RoutesPageProps) {
           <CardDescription>Complete list of bus routes in your system</CardDescription>
         </CardHeader>
         <CardContent>
-          {routes.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading routes…</div>
+          ) : routes.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Route ID</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
                   <TableHead># Stops</TableHead>
@@ -89,9 +105,10 @@ export function RoutesPage({ onViewRoute }: RoutesPageProps) {
                 {routes.map((route) => (
                   <TableRow key={route.routeId}>
                     <TableCell className="font-medium">{route.routeId}</TableCell>
+                    <TableCell>{route.name || '-'}</TableCell>
                     <TableCell>{route.start}</TableCell>
                     <TableCell>{route.end}</TableCell>
-                    <TableCell>{route.stops.length}</TableCell>
+                    <TableCell>{route.stopsCount ?? route.stops.length}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button

@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Save, X, Check } from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
+import { BusesAPI, RoutesAPI } from '../lib/api';
 
 interface Bus {
   id: string;
   plateNumber: string;
   model: string;
   capacity: number;
-  status: 'active' | 'inactive' | 'maintenance';
+  status: string; // backend-managed; not edited here
   assignedRoute: string | null;
   driver: string | null;
   fuelLevel: number;
@@ -21,12 +23,28 @@ interface Bus {
 
 // No dummy data: start with empty lists; populate from backend when available
 const initialBuses: Bus[] = [];
-const availableRoutes: string[] = [];
 
 export function BusesPage() {
   const [buses, setBuses] = useState<Bus[]>(initialBuses);
+  const [routesOptions, setRoutesOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    Promise.all([
+      BusesAPI.list().then((list) =>
+        setBuses(
+          list.map((b: any) => ({
+            ...b,
+            status: String(b.status || ''),
+            assignedRoute: b.assignedRoute ?? null,
+          })) as Bus[]
+        )
+      ),
+      RoutesAPI.list().then((rs) => setRoutesOptions(rs.map(r => r.routeId)))
+    ]).finally(() => setLoading(false));
+  }, []);
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [tempValues, setTempValues] = useState<Record<string, Partial<Bus>>>({});
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
 
   const handleEditRow = (busId: string) => {
     const bus = buses.find(b => b.id === busId);
@@ -36,12 +54,22 @@ export function BusesPage() {
     }
   };
 
-  const handleSaveRow = (busId: string) => {
+  const handleSaveRow = async (busId: string) => {
     const updatedBus = tempValues[busId];
     if (updatedBus) {
-      setBuses(buses.map(bus => 
-        bus.id === busId ? { ...bus, ...updatedBus } : bus
-      ));
+      try {
+        setSavingRowId(busId);
+        await BusesAPI.update(busId, {
+          assignedRoute: updatedBus.assignedRoute ?? null,
+        });
+        setBuses(buses.map(bus => bus.id === busId ? { ...bus, ...updatedBus } : bus));
+        toast.success(`Bus ${busId} updated`);
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to update bus');
+        return; // keep editing state on failure
+      } finally {
+        setSavingRowId(null);
+      }
     }
     setEditingRows(prev => {
       const newSet = new Set(prev);
@@ -66,6 +94,7 @@ export function BusesPage() {
       delete newValues[busId];
       return newValues;
     });
+    toast.info(`Changes to ${busId} discarded`);
   };
 
   const handleUpdateTempValue = (busId: string, field: keyof Bus, value: any) => {
@@ -108,7 +137,9 @@ export function BusesPage() {
           <CardDescription>Assign routes and update bus status</CardDescription>
         </CardHeader>
         <CardContent>
-          {buses.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading buses…</div>
+          ) : buses.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -139,7 +170,7 @@ export function BusesPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">None</SelectItem>
-                            {availableRoutes.map((route) => (
+                          {routesOptions.map((route) => (
                               <SelectItem key={route} value={route}>
                                 {route}
                               </SelectItem>
@@ -151,27 +182,9 @@ export function BusesPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {isEditing ? (
-                        <Select
-                          value={tempBus.status}
-                          onValueChange={(value) => 
-                            handleUpdateTempValue(bus.id, 'status', value)
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="maintenance">Maintenance</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge className={getStatusColor(bus.status)}>
-                          {bus.status.charAt(0).toUpperCase() + bus.status.slice(1)}
-                        </Badge>
-                      )}
+                      <Badge className={getStatusColor((bus.status as any)?.toString().toLowerCase())}>
+                        {((bus.status as any)?.toString() || '').charAt(0).toUpperCase() + ((bus.status as any)?.toString() || '').slice(1)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {isEditing ? (
@@ -180,9 +193,10 @@ export function BusesPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleSaveRow(bus.id)}
+                            disabled={savingRowId === bus.id}
                           >
                             <Check className="h-3 w-3 mr-1" />
-                            Save
+                            {savingRowId === bus.id ? 'Saving…' : 'Save'}
                           </Button>
                           <Button
                             variant="outline"

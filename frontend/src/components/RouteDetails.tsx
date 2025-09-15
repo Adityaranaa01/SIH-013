@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { ArrowLeft, Edit, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 import { RouteFormModal } from './RouteFormModal';
+import { RoutesAPI } from '../lib/api';
 
 interface Stop {
   stopNumber: number;
@@ -16,6 +17,7 @@ interface Route {
   routeId: string;
   start: string;
   end: string;
+  name?: string | null;
   stops: Stop[];
 }
 
@@ -28,6 +30,11 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   // No mock data – start without a route; expect parent to load and pass data later
   const [route, setRoute] = useState<Route | null>(null);
+
+  useEffect(() => {
+    if (!routeId) return;
+    RoutesAPI.get(routeId).then(setRoute).catch(() => setRoute(null));
+  }, [routeId]);
 
   if (!route) {
     return (
@@ -58,9 +65,10 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
     );
   }
 
-  const handleSaveRoute = (updatedRoute: Route) => {
+  const handleSaveRoute = async (updatedRoute: Route) => {
+    await RoutesAPI.update(updatedRoute.routeId, { start: updatedRoute.start, end: updatedRoute.end });
+    await RoutesAPI.replaceStops(updatedRoute.routeId, updatedRoute.stops.map(s => ({ stopNumber: s.stopNumber, name: s.name, lat: s.lat, long: s.long })));
     setRoute(updatedRoute);
-    // In a real app, this would update the backend
   };
 
   return (
@@ -74,7 +82,7 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
           </Button>
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">
-              {route.routeId}: {route.start} → {route.end}
+              {route.name ? `${route.name} (${route.routeId})` : route.routeId}: {route.start} → {route.end}
             </h2>
             <p className="text-muted-foreground">
               Route details and stop information
@@ -87,33 +95,7 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Map Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MapPin className="mr-2 h-5 w-5" />
-              Route Map
-            </CardTitle>
-            <CardDescription>Visual representation of the route and stops</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted rounded-lg p-8 text-center min-h-[400px] flex flex-col items-center justify-center">
-              <MapPin className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Interactive Route Map</h3>
-              <p className="text-muted-foreground mb-4 max-w-md">
-                This would display a map showing the route path with markers for each stop 
-                connected by a polyline to visualize the bus route.
-              </p>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>Start: {route.start}</p>
-                <p>End: {route.end}</p>
-                <p>Total Stops: {route.stops.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-6 lg:grid-cols-1">
         {/* Route Information */}
         <Card>
           <CardHeader>
@@ -125,6 +107,10 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
               <div>
                 <h4 className="font-medium text-sm text-muted-foreground">Route ID</h4>
                 <p className="font-medium">{route.routeId}</p>
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground">Name</h4>
+                <p className="font-medium">{route.name || '-'}</p>
               </div>
               <div>
                 <h4 className="font-medium text-sm text-muted-foreground">Total Stops</h4>

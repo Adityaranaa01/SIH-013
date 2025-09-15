@@ -82,6 +82,47 @@ export async function buildServer() {
     }))
   })
 
+  // Tracking: list active buses (by bus.status = 'running')
+  app.get('/tracking/active-buses', async () => {
+    const rows = await db.selectFrom('buses')
+      .select([
+        'bus_number as id',
+        'bus_number as plateNumber',
+        'status',
+        'assigned_route as assignedRoute',
+        'current_driver as driver'
+      ])
+      .where(sql<boolean>`lower(status) = 'running'`)
+      .orderBy('bus_number')
+      .execute()
+    return rows
+  })
+
+  // Tracking: fetch positions for a bus, optionally since a timestamp
+  // Expects a table bus_locations(bus_number varchar, latitude float8, longitude float8, recorded_at timestamptz)
+  app.get('/tracking/positions', async (req, reply) => {
+    const { bus, since } = (req.query as any) || {}
+    if (!bus) return reply.badRequest('bus is required')
+    let sinceClause = sql``
+    if (since) {
+      sinceClause = sql`and recorded_at > ${since}`
+    }
+    // Use raw SQL via kysely.sql to avoid needing DB typings for external table
+    const result = await sql<{
+      latitude: number
+      longitude: number
+      recorded_at: string
+    }>`
+      select latitude, longitude, recorded_at
+      from bus_locations
+      where bus_number = ${bus}
+      ${sinceClause}
+      order by recorded_at asc
+      limit 1000
+    `.execute(db)
+    return { positions: (result as any).rows || [] }
+  })
+
 
   // Update bus assignment/status
   app.patch('/buses/:busNumber', async (req, reply) => {

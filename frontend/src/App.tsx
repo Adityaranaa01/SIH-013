@@ -7,6 +7,7 @@ import { BusesPage } from './components/BusesPage';
 import { TrackingPage } from './components/TrackingPage';
 import { RouteDetails } from './components/RouteDetails';
 import { Toaster } from './components/ui/sonner';
+import { AuthAPI } from './lib/api';
 
 type Page = 'dashboard' | 'routes' | 'buses' | 'tracking' | 'route-details';
 
@@ -34,6 +35,16 @@ export default function App() {
   });
   const [routeDetails, setRouteDetails] = useState<RouteDetailsState>({ routeId: null });
 
+  // Attempt session restore on load
+  useEffect(() => {
+    AuthAPI.me().then((admin) => {
+      setCurrentAdmin(admin);
+      setIsAuthenticated(true);
+    }).catch(() => {
+      // not logged in; ignore
+    });
+  }, []);
+
   useEffect(() => {
     // Apply theme to document
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -48,6 +59,8 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    // best-effort logout
+    AuthAPI.logout().catch(() => {});
     setCurrentAdmin(null);
     setIsAuthenticated(false);
     setCurrentPage('dashboard');

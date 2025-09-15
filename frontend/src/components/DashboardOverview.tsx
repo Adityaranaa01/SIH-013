@@ -3,6 +3,8 @@ import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Bus, Route, MapPin, Plus, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MetricsAPI } from '../lib/api';
 
 interface Admin {
   id: string;
@@ -15,11 +17,25 @@ interface DashboardOverviewProps {
   currentAdmin: Admin | null;
 }
 
-const stats: Array<{ title: string; value: string; icon: typeof Route }> = [];
-
-const recentRoutes: Array<{ routeId: string; start: string; end: string; stops: number }> = [];
+type Stat = { title: string; value: string; icon: typeof Route };
 
 export function DashboardOverview({ onCreateRoute, onViewTracking, currentAdmin }: DashboardOverviewProps) {
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [recentRoutes, setRecentRoutes] = useState<Array<{ routeId: string; start: string; end: string; stops: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    MetricsAPI.get()
+      .then((m) => {
+        setStats([
+          { title: 'Routes', value: String(m.routesCount), icon: Route },
+          { title: 'Buses', value: String(m.busesCount), icon: Bus },
+          { title: 'Active Buses', value: String(m.activeBusesCount), icon: MapPin },
+        ]);
+        setRecentRoutes(m.recentRoutes);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -34,7 +50,11 @@ export function DashboardOverview({ onCreateRoute, onViewTracking, currentAdmin 
       </div>
 
       {/* Quick Stats */}
-      {stats.length > 0 ? (
+      {loading ? (
+        <Card className="card-elevated border-0">
+          <CardContent className="py-8 text-center text-muted-foreground">Loading stats…</CardContent>
+        </Card>
+      ) : stats.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-3">
           {stats.map((stat) => (
             <Card key={stat.title} className="card-elevated border-0">
@@ -85,7 +105,11 @@ export function DashboardOverview({ onCreateRoute, onViewTracking, currentAdmin 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentRoutes.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">Loading…</TableCell>
+                </TableRow>
+              ) : recentRoutes.length > 0 ? (
                 recentRoutes.map((route) => (
                   <TableRow key={route.routeId}>
                     <TableCell className="font-medium">{route.routeId}</TableCell>

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Plus, Trash2, ArrowUp, ArrowDown, MapPin } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Stop {
   stopNumber: number;
@@ -18,6 +18,7 @@ interface Route {
   routeId: string;
   start: string;
   end: string;
+  name?: string | null;
   stops: Stop[];
 }
 
@@ -32,6 +33,7 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
   const [routeId, setRouteId] = useState(initialRoute?.routeId || '');
   const [start, setStart] = useState(initialRoute?.start || '');
   const [end, setEnd] = useState(initialRoute?.end || '');
+  const [name, setName] = useState(initialRoute?.name || '');
   const [stops, setStops] = useState<Stop[]>(initialRoute?.stops || []);
   
   const [newStopName, setNewStopName] = useState('');
@@ -88,6 +90,7 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
       routeId,
       start,
       end,
+      name: name || null,
       stops
     };
     
@@ -99,6 +102,7 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
     setRouteId('');
     setStart('');
     setEnd('');
+    setName('');
     setStops([]);
     setNewStopName('');
     setNewStopLat('');
@@ -106,8 +110,32 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
     onClose();
   };
 
+  // Sync local state with incoming initialRoute when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialRoute) {
+      setRouteId(initialRoute.routeId || '');
+      setStart(initialRoute.start || '');
+      setEnd(initialRoute.end || '');
+      setName(initialRoute.name || '');
+      setStops(initialRoute.stops || []);
+      setNewStopName('');
+      setNewStopLat('');
+      setNewStopLong('');
+    } else {
+      setRouteId('');
+      setStart('');
+      setEnd('');
+      setName('');
+      setStops([]);
+      setNewStopName('');
+      setNewStopLat('');
+      setNewStopLong('');
+    }
+  }, [initialRoute, isOpen]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -128,6 +156,16 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
                 placeholder="e.g., R-101"
                 value={routeId}
                 onChange={(e) => setRouteId(e.target.value)}
+                disabled={!!initialRoute}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g., Downtown Express"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
             
@@ -201,31 +239,8 @@ export function RouteFormModal({ isOpen, onClose, onSave, initialRoute }: RouteF
             </Card>
           </div>
 
-          {/* Stops List & Map Preview */}
+          {/* Stops List */}
           <div className="space-y-4">
-            {/* Map Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Map Preview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted rounded-lg p-8 text-center min-h-[200px] flex flex-col items-center justify-center">
-                  <MapPin className="h-12 w-12 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Map preview would show markers for each stop and connecting polyline
-                  </p>
-                  {stops.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {stops.length} stops plotted
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Stops Table */}
             <Card>
               <CardHeader>
