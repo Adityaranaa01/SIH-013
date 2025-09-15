@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 import { Save, X, Check } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { BusesAPI, RoutesAPI } from '../lib/api';
+import { store } from '../lib/store';
 
 interface Bus {
   id: string;
@@ -25,19 +26,17 @@ interface Bus {
 const initialBuses: Bus[] = [];
 
 export function BusesPage() {
-  const [buses, setBuses] = useState<Bus[]>(initialBuses);
+  const [buses, setBuses] = useState<Bus[]>(() => (store.buses || initialBuses) as Bus[]);
   const [routesOptions, setRoutesOptions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!store.buses);
   useEffect(() => {
     Promise.all([
       BusesAPI.list().then((list) =>
-        setBuses(
-          list.map((b: any) => ({
+        setBuses((store.buses = (list as any)).map((b: any) => ({
             ...b,
             status: String(b.status || ''),
             assignedRoute: b.assignedRoute ?? null,
-          })) as Bus[]
-        )
+          })) as Bus[])
       ),
       RoutesAPI.list().then((rs) => setRoutesOptions(rs.map(r => r.routeId)))
     ]).finally(() => setLoading(false));
@@ -62,7 +61,9 @@ export function BusesPage() {
         await BusesAPI.update(busId, {
           assignedRoute: updatedBus.assignedRoute ?? null,
         });
-        setBuses(buses.map(bus => bus.id === busId ? { ...bus, ...updatedBus } : bus));
+  const next = buses.map(bus => bus.id === busId ? { ...bus, ...updatedBus } : bus)
+  setBuses(next);
+  if (store.buses) store.buses = next as any
         toast.success(`Bus ${busId} updated`);
       } catch (e: any) {
         toast.error(e?.message || 'Failed to update bus');

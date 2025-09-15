@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { MetricsAPI, RoutesAPI, BusesAPI } from '../lib/api';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -80,6 +81,16 @@ export function DashboardLayout({
                   <SidebarMenuButton
                     isActive={currentPage === item.id}
                     onClick={() => onPageChange(item.id)}
+                    onMouseEnter={() => {
+                      // Lightweight prefetch to warm cache and improve perceived perf
+                      if (item.id === 'dashboard') {
+                        MetricsAPI.get().catch(() => {})
+                      } else if (item.id === 'routes') {
+                        RoutesAPI.list().catch(() => {})
+                      } else if (item.id === 'buses') {
+                        BusesAPI.list().catch(() => {})
+                      }
+                    }}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>

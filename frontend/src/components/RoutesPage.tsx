@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { RouteFormModal } from './RouteFormModal';
 import { RoutesAPI } from '../lib/api';
+import { store } from '../lib/store';
 
 interface Stop {
   stopNumber: number;
@@ -27,11 +28,12 @@ interface RoutesPageProps {
 }
 
 export function RoutesPage({ onViewRoute }: RoutesPageProps) {
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [routes, setRoutes] = useState<Route[]>(() => store.routes ? store.routes.map(r => ({ routeId: r.routeId, start: r.start, end: r.end, name: (r as any).name ?? null, stops: [], stopsCount: (r as any).stopsCount ?? 0 })) : []);
+  const [loading, setLoading] = useState(!store.routes);
 
   useEffect(() => {
     RoutesAPI.list().then(list => {
+      store.routes = list as any
       setRoutes(list.map(r => ({ routeId: r.routeId, start: r.start, end: r.end, name: (r as any).name ?? null, stops: [], stopsCount: (r as any).stopsCount ?? 0 })));
     }).finally(() => setLoading(false));
   }, []);
@@ -49,18 +51,23 @@ export function RoutesPage({ onViewRoute }: RoutesPageProps) {
   };
 
   const handleDeleteRoute = async (routeId: string) => {
-    await RoutesAPI.remove(routeId);
+  await RoutesAPI.remove(routeId);
     setRoutes(routes.filter(r => r.routeId !== routeId));
+  if (store.routes) store.routes = store.routes.filter(r => r.routeId !== routeId) as any
   };
 
   const handleSaveRoute = async (route: Route) => {
     if (editingRoute) {
       await RoutesAPI.update(route.routeId, { start: route.start, end: route.end, name: route.name ?? null });
       await RoutesAPI.replaceStops(route.routeId, route.stops.map(s => ({ stopNumber: s.stopNumber, name: s.name, lat: s.lat, long: s.long })));
-      setRoutes(routes.map(r => r.routeId === route.routeId ? { ...route, stopsCount: route.stops?.length ?? r.stopsCount ?? 0 } : r));
+      const updated = routes.map(r => r.routeId === route.routeId ? { ...route, stopsCount: route.stops?.length ?? r.stopsCount ?? 0 } : r)
+      setRoutes(updated);
+      if (store.routes) store.routes = store.routes.map(r => r.routeId === route.routeId ? { ...r, start: route.start, end: route.end, name: route.name ?? null, stopsCount: route.stops?.length ?? (r as any).stopsCount ?? 0 } : r)
     } else {
       await RoutesAPI.create({ routeId: route.routeId, start: route.start, end: route.end, name: route.name ?? null, stops: route.stops });
-      setRoutes([...routes, { ...route, stopsCount: route.stops?.length ?? 0 }]);
+      const next = [...routes, { ...route, stopsCount: route.stops?.length ?? 0 }]
+      setRoutes(next);
+      if (store.routes) store.routes = [...store.routes, { routeId: route.routeId, start: route.start, end: route.end, name: route.name ?? null, stopsCount: route.stops?.length ?? 0 }] as any
     }
   };
 

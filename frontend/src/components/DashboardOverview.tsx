@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Bus, Route, MapPin, Plus, Eye } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MetricsAPI } from '../lib/api';
+import { store } from '../lib/store';
 
 interface Admin {
   id: string;
@@ -20,13 +21,18 @@ interface DashboardOverviewProps {
 type Stat = { title: string; value: string; icon: typeof Route };
 
 export function DashboardOverview({ onCreateRoute, onViewTracking, currentAdmin }: DashboardOverviewProps) {
-  const [stats, setStats] = useState<Stat[]>([]);
-  const [recentRoutes, setRecentRoutes] = useState<Array<{ routeId: string; start: string; end: string; stops: number }>>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stat[]>(() => store.metrics ? [
+    { title: 'Routes', value: String(store.metrics.routesCount), icon: Route },
+    { title: 'Buses', value: String(store.metrics.busesCount), icon: Bus },
+    { title: 'Active Buses', value: String(store.metrics.activeBusesCount), icon: MapPin },
+  ] : []);
+  const [recentRoutes, setRecentRoutes] = useState<Array<{ routeId: string; start: string; end: string; stops: number }>>(() => store.metrics?.recentRoutes || []);
+  const [loading, setLoading] = useState(!store.metrics);
 
   useEffect(() => {
     MetricsAPI.get()
       .then((m) => {
+        store.metrics = m
         setStats([
           { title: 'Routes', value: String(m.routesCount), icon: Route },
           { title: 'Buses', value: String(m.busesCount), icon: Bus },
