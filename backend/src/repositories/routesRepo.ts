@@ -3,7 +3,7 @@ import { DB } from '../db'
 
 export async function listRoutes(db: Kysely<DB>) {
   const rows = await db.selectFrom('routes')
-    .select(['route_id as routeId', 'start', 'end'])
+    .select(['route_id as routeId', 'start', 'end', 'name'])
     .orderBy('route_id')
     .execute()
 
@@ -19,7 +19,7 @@ export async function listRoutes(db: Kysely<DB>) {
 
 export async function getRouteDetail(db: Kysely<DB>, routeId: string) {
   const route = await db.selectFrom('routes')
-    .select(['route_id as routeId', 'start', 'end'])
+    .select(['route_id as routeId', 'start', 'end', 'name'])
     .where('route_id', '=', routeId)
     .executeTakeFirst()
   if (!route) return null

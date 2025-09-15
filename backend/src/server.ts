@@ -82,10 +82,11 @@ export async function buildServer() {
     }))
   })
 
+
   // Update bus assignment/status
   app.patch('/buses/:busNumber', async (req, reply) => {
     const { busNumber } = req.params as { busNumber: string }
-    const body = req.body as Partial<{ assignedRoute: string | null; status: string; driver: string | null }>
+    const body = req.body as Partial<{ assignedRoute: string | null; driver: string | null }>
 
     // Validate assignedRoute exists if provided and not null
     if (body.assignedRoute) {
@@ -95,7 +96,6 @@ export async function buildServer() {
 
     const update: Record<string, any> = {}
     if (body.assignedRoute !== undefined) update.assigned_route = body.assignedRoute
-    if (body.status !== undefined) update.status = body.status
     if (body.driver !== undefined) update.current_driver = body.driver
 
     if (Object.keys(update).length === 0) return { ok: true }
