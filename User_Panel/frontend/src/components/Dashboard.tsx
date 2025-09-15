@@ -21,6 +21,8 @@ import { RoutesTab } from "./RoutesTab";
 import { StopsTab } from "./StopsTab";
 import { AboutTab } from "./AboutTab";
 import { useRealTimeBusData } from "../hooks/useRealTimeBusData";
+import cityConfig from "../config/cityConfig";
+import { getBusDetails } from "../config/busMapping";
 import {
   ArrowLeft,
   Search,
@@ -122,14 +124,13 @@ export function Dashboard({ onBack }: DashboardProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Routes</SelectItem>
-                  <SelectItem value="CP">Connaught Place</SelectItem>
-                  <SelectItem value="Delhi University">
-                    Delhi University
-                  </SelectItem>
-                  <SelectItem value="AIIMS">AIIMS</SelectItem>
-                  <SelectItem value="Railway">
-                    New Delhi Railway Station
-                  </SelectItem>
+                  {Object.entries(cityConfig.transport.routes).map(
+                    ([routeId, route]) => (
+                      <SelectItem key={routeId} value={routeId}>
+                        {route.name} → {route.description.split(" → ")[1]}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
               <Button
@@ -151,34 +152,41 @@ export function Dashboard({ onBack }: DashboardProps) {
 
             {/* Bus Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredBuses.map((bus) => (
-                <Card
-                  key={bus.id}
-                  className={`group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50 ${
-                    bus.isActive ? "ring-2 ring-green-500/20" : "opacity-75"
-                  }`}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{bus.id}</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        {bus.isActive ? (
-                          <div className="flex items-center space-x-1 text-green-500">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-xs">Live</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1 text-gray-500">
-                            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                            <span className="text-xs">Offline</span>
-                          </div>
-                        )}
+              {filteredBuses.map((bus) => {
+                const busDetails = getBusDetails(bus.id);
+                return (
+                  <Card
+                    key={bus.id}
+                    className={`group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50 ${
+                      bus.isActive ? "ring-2 ring-green-500/20" : "opacity-75"
+                    }`}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{bus.id}</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          {bus.isActive ? (
+                            <div className="flex items-center space-x-1 text-green-500">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs">Live</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1 text-gray-500">
+                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                              <span className="text-xs">Offline</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <CardDescription className="text-sm">
-                      {bus.route}
-                    </CardDescription>
-                  </CardHeader>
+                      <CardDescription className="text-sm">
+                        {busDetails ? busDetails.routeName : bus.route}
+                      </CardDescription>
+                      {busDetails && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Driver: {busDetails.driverName} | Bus: {busDetails.busNumber}
+                        </div>
+                      )}
+                    </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
@@ -220,7 +228,8 @@ export function Dashboard({ onBack }: DashboardProps) {
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
 
             {filteredBuses.length === 0 && !isLoading && (

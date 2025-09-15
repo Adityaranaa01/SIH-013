@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSocket } from "./useSocket";
+import { getBusDetails } from "../config/busMapping";
 
 interface BusLocation {
   busId: string;
@@ -34,10 +35,15 @@ export const useRealTimeBusData = () => {
 
     // Listen for bus location updates
     const handleLocationUpdate = (data: any) => {
+      // Get bus details from mapping
+      const busDetails = getBusDetails(data.busNumber || data.tripId);
+
       // Convert WebSocket data to BusData format
       const updatedBus: BusData = {
         id: data.busNumber || data.tripId,
-        route: data.routeId || `Route ${data.tripId?.slice(-4) || "Unknown"}`,
+        route: busDetails
+          ? busDetails.routeName
+          : data.routeId || `Route ${data.tripId?.slice(-4) || "Unknown"}`,
         currentLocation: {
           lat: data.latitude,
           lng: data.longitude,
@@ -89,19 +95,26 @@ export const useRealTimeBusData = () => {
         const data = await response.json();
 
         if (data.success && data.data) {
-          const formattedBuses: BusData[] = data.data.map((location: any) => ({
-            id: location.busNumber || location.tripId,
-            route: `Route ${location.tripId?.slice(-4) || "Unknown"}`,
-            currentLocation: {
-              lat: location.latitude,
-              lng: location.longitude,
-            },
-            eta: "Live",
-            timeToDestination: "Live",
-            nextStop: "Live Tracking",
-            isActive: true,
-            lastUpdate: location.timestamp,
-          }));
+          const formattedBuses: BusData[] = data.data.map((location: any) => {
+            const busDetails = getBusDetails(
+              location.busNumber || location.tripId
+            );
+            return {
+              id: location.busNumber || location.tripId,
+              route: busDetails
+                ? busDetails.routeName
+                : `Route ${location.tripId?.slice(-4) || "Unknown"}`,
+              currentLocation: {
+                lat: location.latitude,
+                lng: location.longitude,
+              },
+              eta: "Live",
+              timeToDestination: "Live",
+              nextStop: "Live Tracking",
+              isActive: true,
+              lastUpdate: location.timestamp,
+            };
+          });
 
           setBuses(formattedBuses);
         } else {

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import cityConfig from "../config/cityConfig";
 import {
   Card,
   CardContent,
@@ -8,21 +9,14 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
-import { Route, MapPin, Clock, Bus, ChevronRight, X } from "lucide-react";
+import { MapPin, Clock, Bus, Users, Navigation, Star } from "lucide-react";
 
 interface StopInfo {
   id: string;
   name: string;
   coordinates: { lat: number; lng: number };
   estimatedTime: string;
-  amenities?: string[];
+  amenities: string[];
 }
 
 interface RouteData {
@@ -37,706 +31,305 @@ interface RouteData {
   stops: StopInfo[];
 }
 
-const mockRoutes: RouteData[] = [
-  {
-    id: "RT-A",
-    name: "Route A",
-    startPoint: "Connaught Place",
-    endPoint: "IGI Airport Terminal 3",
-    totalStops: 12,
-    activeBuses: 2,
-    avgTime: "45 min",
-    status: "active",
-    stops: [
-      {
-        id: "ST-A1",
-        name: "Connaught Place",
-        coordinates: { lat: 28.6315, lng: 77.2167 },
-        estimatedTime: "0 min",
-        amenities: ["Metro Station", "Shopping", "Food Court"],
-      },
-      {
-        id: "ST-A2",
-        name: "Jantar Mantar",
-        coordinates: { lat: 28.6269, lng: 77.2165 },
-        estimatedTime: "3 min",
-        amenities: ["Historical Site"],
-      },
-      {
-        id: "ST-A3",
-        name: "India Gate",
-        coordinates: { lat: 28.6129, lng: 77.2295 },
-        estimatedTime: "8 min",
-        amenities: ["Monument", "Park"],
-      },
-      {
-        id: "ST-A4",
-        name: "South Extension",
-        coordinates: { lat: 28.5682, lng: 77.2156 },
-        estimatedTime: "12 min",
-        amenities: ["Shopping", "Market"],
-      },
-      {
-        id: "ST-A5",
-        name: "Lajpat Nagar",
-        coordinates: { lat: 28.5672, lng: 77.2431 },
-        estimatedTime: "16 min",
-        amenities: ["Market", "Metro Station"],
-      },
-      {
-        id: "ST-A6",
-        name: "Kalkaji",
-        coordinates: { lat: 28.5495, lng: 77.262 },
-        estimatedTime: "20 min",
-        amenities: ["Temple", "Metro Station"],
-      },
-      {
-        id: "ST-A7",
-        name: "Govindpuri",
-        coordinates: { lat: 28.5444, lng: 77.2667 },
-        estimatedTime: "24 min",
-        amenities: ["Metro Station"],
-      },
-      {
-        id: "ST-A8",
-        name: "Okhla",
-        coordinates: { lat: 28.5348, lng: 77.2669 },
-        estimatedTime: "28 min",
-        amenities: ["Industrial Area"],
-      },
-      {
-        id: "ST-A9",
-        name: "Mahipalpur",
-        coordinates: { lat: 28.5475, lng: 77.1167 },
-        estimatedTime: "32 min",
-        amenities: ["Hotels", "Restaurants"],
-      },
-      {
-        id: "ST-A10",
-        name: "Aerocity",
-        coordinates: { lat: 28.5562, lng: 77.1 },
-        estimatedTime: "36 min",
-        amenities: ["Hotels", "Shopping"],
-      },
-      {
-        id: "ST-A11",
-        name: "Airport Metro Station",
-        coordinates: { lat: 28.5562, lng: 77.1 },
-        estimatedTime: "40 min",
-        amenities: ["Metro Station"],
-      },
-      {
-        id: "ST-A12",
-        name: "IGI Airport Terminal 3",
-        coordinates: { lat: 28.5562, lng: 77.1 },
-        estimatedTime: "45 min",
-        amenities: ["Airport", "Food Court", "Shopping"],
-      },
-    ],
-  },
-  {
-    id: "RT-B",
-    name: "Route B",
-    startPoint: "Delhi University",
-    endPoint: "Select City Mall",
-    totalStops: 8,
-    activeBuses: 1,
-    avgTime: "30 min",
-    status: "active",
-    stops: [
-      {
-        id: "ST-B1",
-        name: "Delhi University",
-        coordinates: { lat: 28.6881, lng: 77.212 },
-        estimatedTime: "0 min",
-        amenities: ["University", "Metro Station"],
-      },
-      {
-        id: "ST-B2",
-        name: "Vishwavidyalaya",
-        coordinates: { lat: 28.6881, lng: 77.212 },
-        estimatedTime: "2 min",
-        amenities: ["Metro Station"],
-      },
-      {
-        id: "ST-B3",
-        name: "Civil Lines",
-        coordinates: { lat: 28.6667, lng: 77.2167 },
-        estimatedTime: "6 min",
-        amenities: ["Government Offices"],
-      },
-      {
-        id: "ST-B4",
-        name: "Kashmere Gate",
-        coordinates: { lat: 28.6667, lng: 77.2333 },
-        estimatedTime: "10 min",
-        amenities: ["Metro Station", "Bus Terminal"],
-      },
-      {
-        id: "ST-B5",
-        name: "Chandni Chowk",
-        coordinates: { lat: 28.6511, lng: 77.2314 },
-        estimatedTime: "14 min",
-        amenities: ["Market", "Historical Site"],
-      },
-      {
-        id: "ST-B6",
-        name: "Rajiv Chowk",
-        coordinates: { lat: 28.6315, lng: 77.2167 },
-        estimatedTime: "18 min",
-        amenities: ["Metro Station", "Shopping"],
-      },
-      {
-        id: "ST-B7",
-        name: "AIIMS",
-        coordinates: { lat: 28.5672, lng: 77.2091 },
-        estimatedTime: "24 min",
-        amenities: ["Hospital", "Metro Station"],
-      },
-      {
-        id: "ST-B8",
-        name: "Select City Mall",
-        coordinates: { lat: 28.545, lng: 77.193 },
-        estimatedTime: "30 min",
-        amenities: ["Shopping Mall", "Food Court", "Cinema"],
-      },
-    ],
-  },
-  {
-    id: "RT-C",
-    name: "Route C",
-    startPoint: "AIIMS",
-    endPoint: "India Gate",
-    totalStops: 10,
-    activeBuses: 1,
-    avgTime: "35 min",
-    status: "active",
-    stops: [
-      {
-        id: "ST-C1",
-        name: "AIIMS",
-        coordinates: { lat: 28.5672, lng: 77.2091 },
-        estimatedTime: "0 min",
-        amenities: ["Hospital", "Metro Station"],
-      },
-      {
-        id: "ST-C2",
-        name: "Green Park",
-        coordinates: { lat: 28.55, lng: 77.2167 },
-        estimatedTime: "4 min",
-        amenities: ["Metro Station", "Market"],
-      },
-      {
-        id: "ST-C3",
-        name: "Hauz Khas",
-        coordinates: { lat: 28.55, lng: 77.2 },
-        estimatedTime: "8 min",
-        amenities: ["Metro Station", "Market", "Restaurants"],
-      },
-      {
-        id: "ST-C4",
-        name: "Malviya Nagar",
-        coordinates: { lat: 28.5333, lng: 77.2167 },
-        estimatedTime: "12 min",
-        amenities: ["Metro Station", "Market"],
-      },
-      {
-        id: "ST-C5",
-        name: "Saket",
-        coordinates: { lat: 28.5167, lng: 77.2 },
-        estimatedTime: "16 min",
-        amenities: ["Metro Station", "Malls"],
-      },
-      {
-        id: "ST-C6",
-        name: "Qutub Minar",
-        coordinates: { lat: 28.5244, lng: 77.1855 },
-        estimatedTime: "20 min",
-        amenities: ["Historical Monument"],
-      },
-      {
-        id: "ST-C7",
-        name: "Mehrauli",
-        coordinates: { lat: 28.5167, lng: 77.1833 },
-        estimatedTime: "24 min",
-        amenities: ["Historical Area"],
-      },
-      {
-        id: "ST-C8",
-        name: "Dhaula Kuan",
-        coordinates: { lat: 28.5833, lng: 77.1667 },
-        estimatedTime: "28 min",
-        amenities: ["Metro Station"],
-      },
-      {
-        id: "ST-C9",
-        name: "Chanakyapuri",
-        coordinates: { lat: 28.5833, lng: 77.1833 },
-        estimatedTime: "32 min",
-        amenities: ["Diplomatic Area"],
-      },
-      {
-        id: "ST-C10",
-        name: "India Gate",
-        coordinates: { lat: 28.6129, lng: 77.2295 },
-        estimatedTime: "35 min",
-        amenities: ["Monument", "Park"],
-      },
-    ],
-  },
-  {
-    id: "RT-D",
-    name: "Route D",
-    startPoint: "New Delhi Railway Station",
-    endPoint: "Gurgaon Cyber City",
-    totalStops: 15,
-    activeBuses: 0,
-    avgTime: "55 min",
-    status: "maintenance",
-    stops: [
-      {
-        id: "ST-D1",
-        name: "New Delhi Railway Station",
-        coordinates: { lat: 28.6439, lng: 77.2186 },
-        estimatedTime: "0 min",
-        amenities: ["Railway Station", "Metro Station"],
-      },
-      {
-        id: "ST-D2",
-        name: "Connaught Place",
-        coordinates: { lat: 28.6315, lng: 77.2167 },
-        estimatedTime: "3 min",
-        amenities: ["Metro Station", "Shopping"],
-      },
-      {
-        id: "ST-D3",
-        name: "Rajiv Chowk",
-        coordinates: { lat: 28.6315, lng: 77.2167 },
-        estimatedTime: "5 min",
-        amenities: ["Metro Station", "Shopping"],
-      },
-      {
-        id: "ST-D4",
-        name: "Barakhamba Road",
-        coordinates: { lat: 28.6167, lng: 77.2167 },
-        estimatedTime: "8 min",
-        amenities: ["Business District"],
-      },
-      {
-        id: "ST-D5",
-        name: "Mandi House",
-        coordinates: { lat: 28.6167, lng: 77.2333 },
-        estimatedTime: "12 min",
-        amenities: ["Cultural Center", "Metro Station"],
-      },
-      {
-        id: "ST-D6",
-        name: "ITO",
-        coordinates: { lat: 28.6167, lng: 77.2333 },
-        estimatedTime: "16 min",
-        amenities: ["Government Offices"],
-      },
-      {
-        id: "ST-D7",
-        name: "Jama Masjid",
-        coordinates: { lat: 28.6508, lng: 77.2333 },
-        estimatedTime: "20 min",
-        amenities: ["Historical Mosque"],
-      },
-      {
-        id: "ST-D8",
-        name: "Red Fort",
-        coordinates: { lat: 28.6562, lng: 77.241 },
-        estimatedTime: "24 min",
-        amenities: ["Historical Fort"],
-      },
-      {
-        id: "ST-D9",
-        name: "ISBT Kashmere Gate",
-        coordinates: { lat: 28.6667, lng: 77.2333 },
-        estimatedTime: "28 min",
-        amenities: ["Bus Terminal"],
-      },
-      {
-        id: "ST-D10",
-        name: "Civil Lines",
-        coordinates: { lat: 28.6667, lng: 77.2167 },
-        estimatedTime: "32 min",
-        amenities: ["Government Offices"],
-      },
-      {
-        id: "ST-D11",
-        name: "Model Town",
-        coordinates: { lat: 28.7167, lng: 77.2 },
-        estimatedTime: "36 min",
-        amenities: ["Residential Area"],
-      },
-      {
-        id: "ST-D12",
-        name: "GTB Nagar",
-        coordinates: { lat: 28.7, lng: 77.2 },
-        estimatedTime: "40 min",
-        amenities: ["Metro Station"],
-      },
-      {
-        id: "ST-D13",
-        name: "Haryana Border",
-        coordinates: { lat: 28.5, lng: 77.1 },
-        estimatedTime: "48 min",
-        amenities: ["State Border"],
-      },
-      {
-        id: "ST-D14",
-        name: "Gurgaon Bus Stand",
-        coordinates: { lat: 28.5022, lng: 77.091 },
-        estimatedTime: "52 min",
-        amenities: ["Bus Terminal"],
-      },
-      {
-        id: "ST-D15",
-        name: "Gurgaon Cyber City",
-        coordinates: { lat: 28.5022, lng: 77.091 },
-        estimatedTime: "55 min",
-        amenities: ["IT Hub", "Offices", "Malls"],
-      },
-    ],
-  },
-];
+// Generate routes from city configuration
+const mockRoutes: RouteData[] = Object.entries(cityConfig.transport.routes).map(
+  ([routeId, route]) => ({
+    id: `RT-${routeId}`,
+    name: route.name,
+    startPoint: route.description.split(" → ")[0],
+    endPoint: route.description.split(" → ")[1],
+    totalStops: route.stops.length,
+    activeBuses: Math.floor(Math.random() * 3) + 1, // Random 1-3 active buses
+    avgTime: `${Math.floor(Math.random() * 30) + 30} min`, // Random 30-60 min
+    status: "active" as const,
+    stops: route.stops.map((stopName, index) => {
+      const landmark = cityConfig.landmarks[stopName];
+      return {
+        id: `ST-${routeId}-${index + 1}`,
+        name: stopName,
+        coordinates: landmark
+          ? { lat: landmark.lat, lng: landmark.lng }
+          : { lat: 12.9716, lng: 77.5946 },
+        estimatedTime: `${index * 5} min`,
+        amenities: landmark ? landmark.amenities : ["Bus Stop"],
+      };
+    }),
+  })
+);
 
 export function RoutesTab() {
   const [selectedRoute, setSelectedRoute] = useState<RouteData | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleRouteClick = (route: RouteData) => {
-    setSelectedRoute(route);
-    setIsModalOpen(true);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-500";
+        return "bg-green-100 text-green-800";
       case "inactive":
-        return "bg-yellow-500";
+        return "bg-red-100 text-red-800";
       case "maintenance":
-        return "bg-red-500";
+        return "bg-yellow-100 text-yellow-800";
       default:
-        return "bg-gray-500";
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
-        return "Active";
+        return <div className="w-2 h-2 bg-green-500 rounded-full"></div>;
       case "inactive":
-        return "Inactive";
+        return <div className="w-2 h-2 bg-red-500 rounded-full"></div>;
       case "maintenance":
-        return "Maintenance";
+        return <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>;
       default:
-        return "Unknown";
+        return <div className="w-2 h-2 bg-gray-500 rounded-full"></div>;
     }
   };
+
+  if (selectedRoute) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedRoute(null)}
+          >
+            ← Back to Routes
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">{selectedRoute.name}</h2>
+            <p className="text-muted-foreground">
+              {selectedRoute.startPoint} → {selectedRoute.endPoint}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bus className="w-5 h-5" />
+                Route Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Stops:</span>
+                <span className="font-semibold">
+                  {selectedRoute.totalStops}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Active Buses:</span>
+                <span className="font-semibold">
+                  {selectedRoute.activeBuses}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Avg. Time:</span>
+                <span className="font-semibold">{selectedRoute.avgTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <Badge className={getStatusColor(selectedRoute.status)}>
+                  {getStatusIcon(selectedRoute.status)}
+                  <span className="ml-1 capitalize">
+                    {selectedRoute.status}
+                  </span>
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Timing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {selectedRoute.avgTime}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Average journey time
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>First Bus:</span>
+                  <span>5:30 AM</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Last Bus:</span>
+                  <span>11:30 PM</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Frequency:</span>
+                  <span>Every 10-15 min</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Live Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {selectedRoute.activeBuses}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Buses currently running
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>On Time:</span>
+                  <span className="text-green-600">85%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delayed:</span>
+                  <span className="text-yellow-600">12%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Cancelled:</span>
+                  <span className="text-red-600">3%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Navigation className="w-5 h-5" />
+              Route Stops
+            </CardTitle>
+            <CardDescription>
+              Complete list of stops along this route
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {selectedRoute.stops.map((stop, index) => (
+                <div
+                  key={stop.id}
+                  className="flex items-start gap-4 p-4 rounded-lg border bg-card/50"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+                      {index + 1}
+                    </div>
+                    {index < selectedRoute.stops.length - 1 && (
+                      <div className="w-0.5 h-8 bg-border mt-2"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-lg">{stop.name}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {stop.estimatedTime}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>
+                        {stop.coordinates.lat.toFixed(4)},{" "}
+                        {stop.coordinates.lng.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {stop.amenities.map((amenity, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <Route className="w-16 h-16 mx-auto mb-4 text-primary" />
-        <h2 className="text-2xl font-bold mb-2">Available Routes</h2>
+        <h2 className="text-3xl font-bold mb-2">BMTC Bus Routes</h2>
         <p className="text-muted-foreground">
-          Browse all bus routes with start/end points and real-time status
+          Explore Bengaluru's public transportation network
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {mockRoutes.map((route) => (
           <Card
             key={route.id}
-            className="hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50"
+            className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+            onClick={() => setSelectedRoute(route)}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{route.name}</CardTitle>
-                <Badge variant="outline" className="gap-1">
-                  <div
-                    className={`w-2 h-2 rounded-full ${getStatusColor(
-                      route.status
-                    )}`}
-                  ></div>
-                  {getStatusText(route.status)}
+                <CardTitle className="text-xl">{route.name}</CardTitle>
+                <Badge className={getStatusColor(route.status)}>
+                  {getStatusIcon(route.status)}
+                  <span className="ml-1 capitalize">{route.status}</span>
                 </Badge>
               </div>
-              <CardDescription className="text-sm">{route.id}</CardDescription>
+              <CardDescription>
+                {route.startPoint} → {route.endPoint}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Route Path */}
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium">
-                    {route.startPoint}
-                  </span>
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span>{route.totalStops} stops</span>
                 </div>
-                <div className="flex-1 mx-4 border-t-2 border-dashed border-muted-foreground/30"></div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-red-600" />
-                  <span className="text-sm font-medium">{route.endPoint}</span>
+                  <Bus className="w-4 h-4 text-muted-foreground" />
+                  <span>{route.activeBuses} active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span>{route.avgTime}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span>High demand</span>
                 </div>
               </div>
-
-              {/* Route Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <MapPin className="w-5 h-5 mx-auto mb-1 text-primary" />
-                  <p className="text-xs text-muted-foreground">Total Stops</p>
-                  <p className="font-semibold">{route.totalStops}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  <span className="text-sm font-medium">4.2</span>
+                  <span className="text-xs text-muted-foreground">(128)</span>
                 </div>
-                <div className="text-center">
-                  <Bus className="w-5 h-5 mx-auto mb-1 text-primary" />
-                  <p className="text-xs text-muted-foreground">Active Buses</p>
-                  <p className="font-semibold">{route.activeBuses}</p>
-                </div>
-                <div className="text-center">
-                  <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
-                  <p className="text-xs text-muted-foreground">Avg Time</p>
-                  <p className="font-semibold">{route.avgTime}</p>
-                </div>
+                <Button size="sm" variant="outline">
+                  View Details
+                </Button>
               </div>
-
-              {/* Route Note */}
-              {route.status === "maintenance" && (
-                <div className="p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded text-sm text-red-700 dark:text-red-400">
-                  Route temporarily unavailable for maintenance
-                </div>
-              )}
-
-              {/* View Stops Button */}
-              <Button
-                onClick={() => handleRouteClick(route)}
-                className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 transition-all duration-300"
-                disabled={route.status === "maintenance"}
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                View All Stops ({route.totalStops})
-              </Button>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      {/* Future Scope Note */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Route className="w-5 h-5" />
-            Future Enhancements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">
-            Currently showing basic route information. Future updates will
-            include:
-          </p>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Interactive route maps with polylines</li>
-            <li>• Real-time bus positions on route paths</li>
-            <li>• Individual stop details with amenities</li>
-            <li>• Route optimization suggestions</li>
-            <li>• Historical performance analytics</li>
-          </ul>
-        </CardContent>
-      </Card>
-
-      {/* Route Details Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Route className="w-5 h-5" />
-              {selectedRoute?.name} - Route Details
-            </DialogTitle>
-            <DialogDescription>
-              Complete list of stops along {selectedRoute?.startPoint} →{" "}
-              {selectedRoute?.endPoint}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedRoute && (
-            <div
-              className="relative overflow-y-auto"
-              style={{ height: "calc(85vh - 120px)" }}
-            >
-              <div className="space-y-6 p-1">
-                {/* Route Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Total Stops</p>
-                    <p className="font-semibold text-lg">
-                      {selectedRoute.totalStops}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Bus className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Active Buses
-                    </p>
-                    <p className="font-semibold text-lg">
-                      {selectedRoute.activeBuses}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Clock className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Total Time</p>
-                    <p className="font-semibold text-lg">
-                      {selectedRoute.avgTime}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${getStatusColor(
-                          selectedRoute.status
-                        )}`}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="font-semibold text-lg">
-                      {getStatusText(selectedRoute.status)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Route Path */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-red-50 dark:from-green-950/20 dark:to-red-950/20 border border-border/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <div>
-                      <p className="font-medium text-sm">Start Point</p>
-                      <p className="text-lg font-semibold">
-                        {selectedRoute.startPoint}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-1 mx-6 border-t-2 border-dashed border-muted-foreground/50"></div>
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="font-medium text-sm">End Point</p>
-                      <p className="text-lg font-semibold">
-                        {selectedRoute.endPoint}
-                      </p>
-                    </div>
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  </div>
-                </div>
-
-                {/* Stops List */}
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    All Stops ({selectedRoute.stops.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedRoute.stops.map((stop, index) => (
-                      <Card
-                        key={stop.id}
-                        className="bg-card/50 backdrop-blur-sm border-border/50"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="flex flex-col items-center">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                                  {index + 1}
-                                </div>
-                                {index < selectedRoute.stops.length - 1 && (
-                                  <div className="w-0.5 h-8 bg-border mt-2"></div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-base">
-                                  {stop.name}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {stop.id}
-                                </p>
-                                {stop.amenities &&
-                                  stop.amenities.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                      {stop.amenities.map(
-                                        (amenity, amenityIndex) => (
-                                          <Badge
-                                            key={amenityIndex}
-                                            variant="secondary"
-                                            className="text-xs"
-                                          >
-                                            {amenity}
-                                          </Badge>
-                                        )
-                                      )}
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-primary">
-                                {stop.estimatedTime}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                ETA
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Route Information */}
-                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Route className="w-5 h-5" />
-                      Route Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground mb-1">Route ID:</p>
-                        <p className="font-medium">{selectedRoute.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">Frequency:</p>
-                        <p className="font-medium">Every 15-20 minutes</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">
-                          Operating Hours:
-                        </p>
-                        <p className="font-medium">5:00 AM - 11:00 PM</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">Fare:</p>
-                        <p className="font-medium">
-                          ₹10 - ₹25 (Distance based)
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

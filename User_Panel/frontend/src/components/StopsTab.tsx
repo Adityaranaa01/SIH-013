@@ -1,4 +1,10 @@
 import React, { useMemo, useState } from "react";
+import cityConfig from "../config/cityConfig";
+import {
+  busRouteMapping,
+  searchBuses,
+  getBusDetails,
+} from "../config/busMapping";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -7,7 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { MapPin, Clock, Navigation as NavigationIcon, Bus, Flag, Search, Plus, X } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  Navigation as NavigationIcon,
+  Bus,
+  Flag,
+  Search,
+  Plus,
+  X,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -56,91 +71,42 @@ interface BusTrackingDetails {
   stops: BusStopTimelineItem[];
 }
 
-const mockStops: StopData[] = [
-  {
-    id: "ST-001",
-    name: "Connaught Place",
-    coordinates: { lat: 28.6315, lng: 77.2167 },
-    routes: ["CP → IGI Airport", "Delhi University → Select City Mall"],
-  },
-  {
-    id: "ST-002",
-    name: "Gurgaon Cyber City",
-    coordinates: { lat: 28.5022, lng: 77.091 },
-    routes: [
-      "Delhi University → Select City Mall",
-      "New Delhi Railway Station → Cyber City",
-    ],
-  },
-  {
-    id: "ST-003",
-    name: "India Gate",
-    coordinates: { lat: 28.6129, lng: 77.2295 },
-    routes: ["AIIMS → India Gate"],
-  },
-  {
-    id: "ST-004",
-    name: "IGI Airport Terminal 3",
-    coordinates: { lat: 28.5562, lng: 77.1 },
-    routes: ["CP → IGI Airport"],
-  },
-  {
-    id: "ST-005",
-    name: "Select City Mall",
-    coordinates: { lat: 28.545, lng: 77.193 },
-    routes: ["Delhi University → Select City Mall"],
-  },
-  {
-    id: "ST-006",
-    name: "Delhi University",
-    coordinates: { lat: 28.6881, lng: 77.212 },
-    routes: [
-      "Delhi University → Select City Mall",
-      "New Delhi Railway Station → Cyber City",
-    ],
-  },
-];
+// Generate stops from city configuration
+const mockStops: StopData[] = Object.entries(cityConfig.landmarks).map(
+  ([landmarkName, landmark], index) => {
+    // Find which routes pass through this landmark
+    const routes = Object.entries(cityConfig.transport.routes)
+      .filter(([_, route]) => route.stops.includes(landmarkName))
+      .map(([routeId, route]) => route.description);
 
-const mockETAs: Record<string, BusETA[]> = {
-  "ST-001": [
-    {
-      busId: "BUS-001",
-      route: "CP → IGI Airport",
-      eta: "3 min",
-      timeToDestination: "28 min",
-    },
-    {
-      busId: "BUS-002",
-      route: "Delhi University → Select City Mall",
-      eta: "8 min",
-      timeToDestination: "15 min",
-    },
-  ],
-  "ST-002": [
-    {
-      busId: "BUS-002",
-      route: "Delhi University → Select City Mall",
-      eta: "5 min",
-      timeToDestination: "18 min",
-    },
-  ],
-  "ST-003": [
-    {
-      busId: "BUS-003",
-      route: "AIIMS → India Gate",
-      eta: "12 min",
-      timeToDestination: "32 min",
-    },
-  ],
-  "ST-004": [
-    {
-      busId: "BUS-001",
-      route: "CP → IGI Airport",
-      eta: "18 min",
-      timeToDestination: "25 min",
-    },
-  ],
-};
+    return {
+      id: `ST-${String(index + 1).padStart(3, "0")}`,
+      name: landmarkName,
+      coordinates: { lat: landmark.lat, lng: landmark.lng },
+      routes: routes.length > 0 ? routes : ["General Stop"],
+    };
+  }
+);
+
+// Generate mock ETAs based on city configuration
+const mockETAs: Record<string, BusETA[]> = mockStops.reduce((acc, stop) => {
+  const etas: BusETA[] = [];
+
+  // Generate ETAs for each route that passes through this stop
+  stop.routes.forEach((routeDesc, index) => {
+    if (routeDesc !== "General Stop") {
+      etas.push({
+        busId: `BUS-${String(index + 1).padStart(3, "0")}`,
+        route: routeDesc,
+        eta: `${Math.floor(Math.random() * 15) + 3} min`,
+        timeToDestination: `${Math.floor(Math.random() * 30) + 15} min`,
+      });
+    }
+  });
+
+  acc[stop.id] = etas;
+  return acc;
+}, {} as Record<string, BusETA[]>);
 
 export function StopsTab() {
   const [pickupPoint, setPickupPoint] = useState("");
@@ -149,21 +115,25 @@ export function StopsTab() {
   const [searchResults, setSearchResults] = useState<BusETA[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   // Suggestion dropdown state
-  const locations = useMemo(
-    () => [
-      "India Gate",
-      "Connaught Place",
-      "AIIMS",
-      "Delhi University",
-      "Green Park",
-      "Hauz Khas",
-      "Malviya Nagar",
-      "Rajiv Chowk",
-      "Aerocity",
-      "IGI Airport Terminal 3",
-    ],
-    []
-  );
+  const locations = useMemo(() => {
+    const allStops = mockStops.map((s) => s.name);
+    const allRoutes = Array.from(new Set(mockStops.flatMap((s) => s.routes)));
+    const allBusIds = Object.keys(busRouteMapping);
+    const allBusNumbers = Object.values(busRouteMapping).map(
+      (bus) => bus.busNumber
+    );
+    const allDriverNames = Object.values(busRouteMapping).map(
+      (bus) => bus.driverName
+    );
+
+    return [
+      ...allStops,
+      ...allRoutes,
+      ...allBusIds,
+      ...allBusNumbers,
+      ...allDriverNames,
+    ];
+  }, []);
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
   const [pickupActiveIndex, setPickupActiveIndex] = useState(-1);
@@ -171,78 +141,156 @@ export function StopsTab() {
 
   const rankAndFilter = (query: string) => {
     const q = query.trim().toLowerCase();
-    if (!q) return locations;
-    const scored = locations
-      .map((loc) => {
-        const l = loc.toLowerCase();
-        let score = -1;
-        if (l.startsWith(q)) score = 2;
-        else if (l.includes(q)) score = 1;
-        return { loc, score, idx: l.indexOf(q) };
-      })
-      .filter((s) => s.score >= 0)
-      .sort((a, b) => (b.score - a.score) || (a.idx - b.idx) || a.loc.localeCompare(b.loc));
-    return scored.map((s) => s.loc);
+    if (!q) return [];
+
+    const suggestions: Array<{
+      text: string;
+      category: string;
+      icon: string;
+      score: number;
+      idx: number;
+    }> = [];
+
+    // Search stops
+    mockStops.forEach((stop) => {
+      const name = stop.name.toLowerCase();
+      if (name.includes(q)) {
+        suggestions.push({
+          text: stop.name,
+          category: "Bus Stop",
+          icon: "📍",
+          score: name.startsWith(q) ? 3 : 2,
+          idx: name.indexOf(q),
+        });
+      }
+    });
+
+    // Search routes
+    Object.values(cityConfig.transport.routes).forEach((route) => {
+      const name = route.description.toLowerCase();
+      if (name.includes(q)) {
+        suggestions.push({
+          text: route.description,
+          category: "Route",
+          icon: "🚌",
+          score: name.startsWith(q) ? 3 : 2,
+          idx: name.indexOf(q),
+        });
+      }
+    });
+
+    // Search buses
+    Object.values(busRouteMapping).forEach((bus) => {
+      const busId = bus.busId.toLowerCase();
+      const busNumber = bus.busNumber.toLowerCase();
+      const driverName = bus.driverName.toLowerCase();
+
+      if (busId.includes(q)) {
+        suggestions.push({
+          text: `${bus.busId} - ${bus.routeName}`,
+          category: "Bus",
+          icon: "🚌",
+          score: busId.startsWith(q) ? 3 : 2,
+          idx: busId.indexOf(q),
+        });
+      } else if (busNumber.includes(q)) {
+        suggestions.push({
+          text: `${bus.busNumber} - ${bus.routeName}`,
+          category: "Bus",
+          icon: "🚌",
+          score: busNumber.startsWith(q) ? 3 : 2,
+          idx: busNumber.indexOf(q),
+        });
+      } else if (driverName.includes(q)) {
+        suggestions.push({
+          text: `${bus.driverName} - ${bus.routeName}`,
+          category: "Driver",
+          icon: "👨‍💼",
+          score: driverName.startsWith(q) ? 3 : 2,
+          idx: driverName.indexOf(q),
+        });
+      }
+    });
+
+    return suggestions
+      .sort(
+        (a, b) =>
+          b.score - a.score || a.idx - b.idx || a.text.localeCompare(b.text)
+      )
+      .slice(0, 8); // Limit to 8 suggestions
   };
 
-  const pickupSuggestions = useMemo(() => rankAndFilter(pickupPoint), [pickupPoint, locations]);
-  const destSuggestions = useMemo(() => rankAndFilter(destination), [destination, locations]);
+  const pickupSuggestions = useMemo(
+    () => rankAndFilter(pickupPoint),
+    [pickupPoint, locations]
+  );
+  const destSuggestions = useMemo(
+    () => rankAndFilter(destination),
+    [destination, locations]
+  );
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [selectedBus, setSelectedBus] = useState<BusETA | null>(null);
 
-  // Dummy tracking data per busId
-  const mockBusTracking: Record<string, BusTrackingDetails> = {
-    "BUS-001": {
-      busId: "BUS-001",
-      route: "CP → IGI Airport",
-      currentStopIndex: 3,
-      nextStopIndex: 4,
-      stops: [
-        { index: 1, name: "Connaught Place", eta: "09:00 AM", departure: "09:02 AM", distanceFromSourceKm: 0, platform: "A1", status: "Departed" },
-        { index: 2, name: "Jantar Mantar", eta: "09:06 AM", departure: "09:07 AM", distanceFromSourceKm: 2.1, platform: "B3", status: "Departed" },
-        { index: 3, name: "India Gate", eta: "09:14 AM", departure: "09:16 AM", distanceFromSourceKm: 5.8, platform: "C2", status: "Arrived", isCurrent: true },
-        { index: 4, name: "South Extension", eta: "09:22 AM", departure: "09:24 AM", distanceFromSourceKm: 9.6, platform: "D1", status: "On time", isNext: true },
-        { index: 5, name: "Lajpat Nagar", eta: "09:28 AM", departure: "09:30 AM", distanceFromSourceKm: 12.2, platform: "E4", status: "On time" },
-        { index: 6, name: "Kalkaji", eta: "09:34 AM", departure: "09:36 AM", distanceFromSourceKm: 15.1, platform: "F2", status: "On time" },
-        { index: 7, name: "Mahipalpur", eta: "09:46 AM", departure: "09:48 AM", distanceFromSourceKm: 22.8, platform: "G5", status: "Delayed" },
-        { index: 8, name: "Aerocity", eta: "09:52 AM", departure: "09:54 AM", distanceFromSourceKm: 25.0, platform: "H1", status: "On time" },
-        { index: 9, name: "Airport Metro Station", eta: "09:58 AM", departure: "10:00 AM", distanceFromSourceKm: 27.2, platform: "I3", status: "On time" },
-        { index: 10, name: "IGI Airport T3", eta: "10:05 AM", distanceFromSourceKm: 28.0, platform: "T3-Stand", status: "On time" },
-      ],
-    },
-    "BUS-002": {
-      busId: "BUS-002",
-      route: "Delhi University → Select City Mall",
-      currentStopIndex: 2,
-      nextStopIndex: 3,
-      stops: [
-        { index: 1, name: "Delhi University", eta: "10:00 AM", departure: "10:02 AM", distanceFromSourceKm: 0, platform: "DU-1", status: "Departed" },
-        { index: 2, name: "Vishwavidyalaya", eta: "10:05 AM", departure: "10:06 AM", distanceFromSourceKm: 1.5, platform: "V-2", status: "Arrived", isCurrent: true },
-        { index: 3, name: "Civil Lines", eta: "10:12 AM", departure: "10:14 AM", distanceFromSourceKm: 4.2, platform: "CL-3", status: "On time", isNext: true },
-        { index: 4, name: "Kashmere Gate", eta: "10:20 AM", departure: "10:22 AM", distanceFromSourceKm: 7.9, platform: "KG-5", status: "On time" },
-        { index: 5, name: "Rajiv Chowk", eta: "10:28 AM", departure: "10:30 AM", distanceFromSourceKm: 12.3, platform: "RC-1", status: "On time" },
-        { index: 6, name: "AIIMS", eta: "10:42 AM", departure: "10:44 AM", distanceFromSourceKm: 18.7, platform: "AI-2", status: "On time" },
-        { index: 7, name: "Saket", eta: "10:55 AM", departure: "10:56 AM", distanceFromSourceKm: 24.1, platform: "SK-4", status: "Delayed" },
-        { index: 8, name: "Select City Mall", eta: "11:02 AM", distanceFromSourceKm: 26.3, platform: "SCM-Stand", status: "On time" },
-      ],
-    },
-    "BUS-003": {
-      busId: "BUS-003",
-      route: "AIIMS → India Gate",
-      currentStopIndex: 4,
-      nextStopIndex: 5,
-      stops: [
-        { index: 1, name: "AIIMS", eta: "08:30 AM", departure: "08:32 AM", distanceFromSourceKm: 0, platform: "AI-1", status: "Departed" },
-        { index: 2, name: "Green Park", eta: "08:36 AM", departure: "08:37 AM", distanceFromSourceKm: 2.3, platform: "GP-1", status: "Departed" },
-        { index: 3, name: "Hauz Khas", eta: "08:42 AM", departure: "08:44 AM", distanceFromSourceKm: 4.8, platform: "HK-2", status: "Departed" },
-        { index: 4, name: "Malviya Nagar", eta: "08:50 AM", departure: "08:52 AM", distanceFromSourceKm: 8.1, platform: "MN-3", status: "Arrived", isCurrent: true },
-        { index: 5, name: "Saket", eta: "08:58 AM", departure: "09:00 AM", distanceFromSourceKm: 10.3, platform: "SK-1", status: "On time", isNext: true },
-        { index: 6, name: "Qutub Minar", eta: "09:06 AM", departure: "09:07 AM", distanceFromSourceKm: 13.5, platform: "QM-1", status: "On time" },
-        { index: 7, name: "Dhaula Kuan", eta: "09:18 AM", departure: "09:20 AM", distanceFromSourceKm: 19.2, platform: "DK-2", status: "On time" },
-        { index: 8, name: "Chanakyapuri", eta: "09:26 AM", distanceFromSourceKm: 22.4, platform: "CH-1", status: "On time" },
-        { index: 9, name: "India Gate", eta: "09:34 AM", distanceFromSourceKm: 26.1, platform: "IG-Stand", status: "On time" },
-      ],
-    },
+  // Generate dynamic tracking data based on selected bus
+  const generateBusTrackingData = (
+    busId: string
+  ): BusTrackingDetails | null => {
+    const busDetails = getBusDetails(busId);
+    if (!busDetails) return null;
+
+    // Find the route in cityConfig
+    const route = cityConfig.transport.routes[busDetails.routeId];
+    if (!route) return null;
+
+    // Generate stops based on the route
+    const stops = route.stops.map((stopName, index) => {
+      const landmark = cityConfig.landmarks[stopName];
+      const currentTime = new Date();
+      const baseTime = new Date(currentTime.getTime() + index * 5 * 60000); // 5 minutes per stop
+
+      // Randomly assign current stop (between 1 and 3 stops from start)
+      const currentStopIndex = Math.floor(Math.random() * 3) + 1;
+      const isCurrent = index === currentStopIndex;
+      const isNext = index === currentStopIndex + 1;
+
+      let status: StopStatus = "On time";
+      if (index < currentStopIndex) status = "Departed";
+      else if (isCurrent) status = "Arrived";
+      else if (Math.random() < 0.1) status = "Delayed";
+
+      return {
+        index: index + 1,
+        name: stopName,
+        eta: baseTime.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+        departure:
+          index < currentStopIndex
+            ? baseTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : undefined,
+        distanceFromSourceKm: index * 2.5 + Math.random() * 2, // Approximate distance
+        platform: `${String.fromCharCode(65 + (index % 26))}${
+          (index % 10) + 1
+        }`, // A1, B2, etc.
+        status,
+        isCurrent,
+        isNext,
+      };
+    });
+
+    return {
+      busId,
+      route: busDetails.routeName,
+      currentStopIndex: stops.findIndex((s) => s.isCurrent) + 1,
+      nextStopIndex: stops.findIndex((s) => s.isNext) + 1,
+      stops,
+    };
   };
 
   const addIntermediateStop = () => {
@@ -362,12 +410,16 @@ export function StopsTab() {
                   }}
                   className="pl-10"
                   onFocus={() => setShowPickupSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 120)}
+                  onBlur={() =>
+                    setTimeout(() => setShowPickupSuggestions(false), 120)
+                  }
                   onKeyDown={(e) => {
                     if (!showPickupSuggestions) return;
                     if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      setPickupActiveIndex((i) => Math.min(i + 1, pickupSuggestions.length - 1));
+                      setPickupActiveIndex((i) =>
+                        Math.min(i + 1, pickupSuggestions.length - 1)
+                      );
                     } else if (e.key === "ArrowUp") {
                       e.preventDefault();
                       setPickupActiveIndex((i) => Math.max(i - 1, 0));
@@ -386,18 +438,28 @@ export function StopsTab() {
                 {showPickupSuggestions && pickupSuggestions.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full rounded-lg border border-border/50 bg-popover shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                     <ul className="py-1">
-                      {pickupSuggestions.map((s, idx) => (
+                      {pickupSuggestions.map((suggestion, idx) => (
                         <li
-                          key={s}
-                          className={`px-3 py-2 text-sm cursor-pointer ${idx === pickupActiveIndex ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                          key={`${suggestion.text}-${idx}`}
+                          className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${
+                            idx === pickupActiveIndex
+                              ? "bg-muted/60"
+                              : "hover:bg-muted/40"
+                          }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            setPickupPoint(s);
+                            setPickupPoint(suggestion.text);
                             setShowPickupSuggestions(false);
                           }}
                           onMouseEnter={() => setPickupActiveIndex(idx)}
                         >
-                          {s}
+                          <span className="text-lg">{suggestion.icon}</span>
+                          <div className="flex-1">
+                            <div className="font-medium">{suggestion.text}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {suggestion.category}
+                            </div>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -420,12 +482,16 @@ export function StopsTab() {
                   }}
                   className="pl-10"
                   onFocus={() => setShowDestSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowDestSuggestions(false), 120)}
+                  onBlur={() =>
+                    setTimeout(() => setShowDestSuggestions(false), 120)
+                  }
                   onKeyDown={(e) => {
                     if (!showDestSuggestions) return;
                     if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      setDestActiveIndex((i) => Math.min(i + 1, destSuggestions.length - 1));
+                      setDestActiveIndex((i) =>
+                        Math.min(i + 1, destSuggestions.length - 1)
+                      );
                     } else if (e.key === "ArrowUp") {
                       e.preventDefault();
                       setDestActiveIndex((i) => Math.max(i - 1, 0));
@@ -444,18 +510,28 @@ export function StopsTab() {
                 {showDestSuggestions && destSuggestions.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full rounded-lg border border-border/50 bg-popover shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                     <ul className="py-1">
-                      {destSuggestions.map((s, idx) => (
+                      {destSuggestions.map((suggestion, idx) => (
                         <li
-                          key={s}
-                          className={`px-3 py-2 text-sm cursor-pointer ${idx === destActiveIndex ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                          key={`${suggestion.text}-${idx}`}
+                          className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${
+                            idx === destActiveIndex
+                              ? "bg-muted/60"
+                              : "hover:bg-muted/40"
+                          }`}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            setDestination(s);
+                            setDestination(suggestion.text);
                             setShowDestSuggestions(false);
                           }}
                           onMouseEnter={() => setDestActiveIndex(idx)}
                         >
-                          {s}
+                          <span className="text-lg">{suggestion.icon}</span>
+                          <div className="flex-1">
+                            <div className="font-medium">{suggestion.text}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {suggestion.category}
+                            </div>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -599,94 +675,78 @@ export function StopsTab() {
               <Bus className="w-5 h-5" />
               {selectedBus?.busId} - Live Tracking
             </DialogTitle>
-            <DialogDescription>
-              {selectedBus?.route}
-            </DialogDescription>
+            <DialogDescription>{selectedBus?.route}</DialogDescription>
           </DialogHeader>
 
           {selectedBus && (
-            <div className="relative overflow-y-auto" style={{ height: "calc(85vh - 120px)" }}>
+            <div
+              className="relative overflow-y-auto"
+              style={{ height: "calc(85vh - 120px)" }}
+            >
               {/* Minimal vertical timeline */}
               <div className="space-y-2 p-1">
-                {mockBusTracking[selectedBus.busId]?.stops.map((s, index, arr) => (
-                  <Card key={s.index} className="bg-card/50 backdrop-blur-sm border-border/50">
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full ${s.isCurrent ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'} flex items-center justify-center text-sm font-semibold`}>
-                              {s.isCurrent ? <Bus className="w-4 h-4" /> : index + 1}
+                {generateBusTrackingData(selectedBus.busId)?.stops.map(
+                  (s, index, arr) => (
+                    <Card
+                      key={s.index}
+                      className="bg-card/50 backdrop-blur-sm border-border/50"
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-center">
+                              <div
+                                className={`w-8 h-8 rounded-full ${
+                                  s.isCurrent
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-primary/10 text-primary"
+                                } flex items-center justify-center text-sm font-semibold`}
+                              >
+                                {s.isCurrent ? (
+                                  <Bus className="w-4 h-4" />
+                                ) : (
+                                  index + 1
+                                )}
+                              </div>
+                              {index < arr.length - 1 && (
+                                <div className="w-0.5 h-8 bg-border mt-2"></div>
+                              )}
                             </div>
-                            {index < arr.length - 1 && (
-                              <div className="w-0.5 h-8 bg-border mt-2"></div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-[14px] truncate">{s.name}</h4>
-                            <div className="mt-1 text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
-                              <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> ETA {s.eta}</span>
-                              {s.departure && <span>Dep {s.departure}</span>}
-                              {typeof s.distanceFromSourceKm === 'number' && <span>{s.distanceFromSourceKm.toFixed(0)} km</span>}
-                              {s.platform && <span>PF {s.platform}</span>}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-[14px] truncate">
+                                {s.name}
+                              </h4>
+                              <div className="mt-1 text-[11px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="w-3 h-3" /> ETA {s.eta}
+                                </span>
+                                {s.departure && <span>Dep {s.departure}</span>}
+                                {typeof s.distanceFromSourceKm === "number" && (
+                                  <span>
+                                    {s.distanceFromSourceKm.toFixed(0)} km
+                                  </span>
+                                )}
+                                {s.platform && <span>PF {s.platform}</span>}
+                              </div>
                             </div>
                           </div>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${statusPillClasses(
+                              s.status
+                            )}`}
+                          >
+                            {s.status}
+                          </span>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${statusPillClasses(s.status)}`}>{s.status}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  )
+                )}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Popular Stops */}
-      <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-        <CardHeader>
-          <CardTitle>Popular Stops</CardTitle>
-          <CardDescription>
-            Frequently used bus stops with current ETAs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockStops.slice(0, 6).map((stop) => (
-              <div
-                key={stop.id}
-                className="p-4 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <h4 className="font-medium">{stop.name}</h4>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">{stop.id}</p>
-                <div className="flex flex-wrap gap-1">
-                  {stop.routes.map((route) => (
-                    <Badge key={route} variant="secondary" className="text-xs">
-                      {route.split(" → ")[0]}
-                    </Badge>
-                  ))}
-                </div>
-                {mockETAs[stop.id] && (
-                  <div className="mt-2 pt-2 border-t border-border/50">
-                    <p className="text-xs text-muted-foreground">Next bus:</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {mockETAs[stop.id][0].busId}
-                      </span>
-                      <span className="text-sm text-primary">
-                        {mockETAs[stop.id][0].eta}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

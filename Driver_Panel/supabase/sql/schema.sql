@@ -121,8 +121,22 @@ DROP POLICY IF EXISTS "trip_locations_delete_all" ON trip_locations;
 CREATE POLICY "trip_locations_delete_all" ON trip_locations FOR DELETE USING (true);
 
 -- Seed minimal sample data (optional)
-INSERT INTO drivers (driver_id, name, route_id, status) VALUES ('D001', 'Sample Driver', 'R001', 'inactive')
+INSERT INTO drivers (driver_id, name, route_id, status) VALUES 
+('D001', 'Rajesh Kumar', '500A', 'inactive'),
+('D002', 'Priya Sharma', '600B', 'inactive'),
+('D003', 'Suresh Reddy', '700C', 'inactive'),
+('D004', 'Anita Singh', '600B', 'inactive'),
+('D005', 'Vikram Patel', '600B', 'inactive'),
+('D006', 'Deepak Kumar', '700C', 'inactive'),
+('D007', 'Sunita Rao', '700C', 'inactive')
 ON CONFLICT (driver_id) DO NOTHING;
 
-INSERT INTO buses (bus_number, status) VALUES ('BUS101', 'halt')
+INSERT INTO buses (bus_number, status) VALUES 
+('BUS-001', 'halt'),
+('BUS-002', 'halt'),
+('BUS-003', 'halt'),
+('BUS-004', 'halt'),
+('BUS-005', 'halt'),
+('BUS-006', 'halt'),
+('BUS-007', 'halt')
 ON CONFLICT (bus_number) DO NOTHING;

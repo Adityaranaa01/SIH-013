@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ArrowLeft, MapPin, Clock, Navigation } from "lucide-react";
 import { Crosshair } from "lucide-react";
+import cityConfig from "../config/cityConfig";
 
 // Fix for default markers (uses public/marker-icon.png and public/marker-shadow.png)
 const defaultIcon = L.icon({
