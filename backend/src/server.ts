@@ -12,6 +12,7 @@ import { registerAuthRoutes } from './routes/auth'
 import { registerRoutesCrud } from './routes/routes'
 import { registerDevRoutes } from './routes/dev'
 import { registerMetricsRoutes } from './routes/metrics'
+import { registerDriversRoutes } from './routes/drivers'
 
 const PORT = Number(process.env.PORT || 3001)
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173'
@@ -80,6 +81,46 @@ export async function buildServer() {
       lastMaintenance: null,
       mileage: null
     }))
+  })
+
+  // Create a new bus
+  app.post('/buses', async (req, reply) => {
+    const body = req.body as Partial<{ busNumber: string; assignedRoute?: string | null; driver?: string | null; status?: string | null }>
+    const busNumber = (body?.busNumber || '').trim()
+    if (!busNumber) return reply.badRequest('busNumber is required')
+
+    // Validate assignedRoute exists if provided and not null
+    if (body.assignedRoute) {
+      const exists = await db.selectFrom('routes').select('route_id').where('route_id', '=', body.assignedRoute).executeTakeFirst()
+      if (!exists) return reply.badRequest('assignedRoute does not exist')
+    }
+
+    // Insert; allow upsert behavior to avoid duplicates errors if needed
+    try {
+      await db.insertInto('buses').values({
+        bus_number: busNumber,
+        assigned_route: body.assignedRoute ?? null,
+        current_driver: body.driver ?? null,
+        status: body.status ?? null,
+      }).execute()
+    } catch (e: any) {
+      // Unique violation code for Postgres
+      if (e?.code === '23505') return reply.conflict('Bus already exists')
+      throw e
+    }
+
+    return {
+      id: busNumber,
+      plateNumber: busNumber,
+      status: body.status ?? null,
+      assignedRoute: body.assignedRoute ?? null,
+      driver: body.driver ?? null,
+      model: null,
+      capacity: null,
+      fuelLevel: null,
+      lastMaintenance: null,
+      mileage: null
+    }
   })
 
   // Tracking: list active buses (by bus.status = 'running')
@@ -151,6 +192,7 @@ export async function buildServer() {
   await registerRoutesCrud(app, db)
   await registerDevRoutes(app, db)
   await registerMetricsRoutes(app, db)
+  await registerDriversRoutes(app, db)
 
   return app
 }

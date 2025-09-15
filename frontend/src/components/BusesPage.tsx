@@ -4,10 +4,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Save, X, Check } from 'lucide-react';
+import { Save, X, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { BusesAPI, RoutesAPI } from '../lib/api';
 import { store } from '../lib/store';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Input } from './ui/input';
 
 interface Bus {
   id: string;
@@ -44,6 +46,9 @@ export function BusesPage() {
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [tempValues, setTempValues] = useState<Record<string, Partial<Bus>>>({});
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [showAddBus, setShowAddBus] = useState(false);
+  const [newBusNumber, setNewBusNumber] = useState('');
+  const [newBusRoute, setNewBusRoute] = useState<string | 'none'>('none');
 
   const handleEditRow = (busId: string) => {
     const bus = buses.find(b => b.id === busId);
@@ -133,9 +138,69 @@ export function BusesPage() {
 
       {/* Buses Table */}
       <Card className="card-elevated border-0">
-        <CardHeader>
-          <CardTitle className="text-gradient-primary">Bus Fleet</CardTitle>
-          <CardDescription>Assign routes and update bus status</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-gradient-primary">Bus Fleet</CardTitle>
+            <CardDescription>Assign routes and update bus status</CardDescription>
+          </div>
+          <Dialog open={showAddBus} onOpenChange={setShowAddBus}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Bus
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Bus</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <label className="text-sm font-medium">Bus Number</label>
+                  <Input value={newBusNumber} onChange={e => setNewBusNumber(e.target.value)} placeholder="e.g. BUS-101" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Assign Route (optional)</label>
+                  <Select
+                    value={newBusRoute}
+                    onValueChange={(v) => setNewBusRoute(v as any)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select route" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {routesOptions.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={async () => {
+                    const busNumber = newBusNumber.trim()
+                    if (!busNumber) { toast.error('Bus number is required'); return }
+                    try {
+                      const created = await BusesAPI.create({ busNumber, assignedRoute: newBusRoute === 'none' ? null : newBusRoute })
+                      const next = [...buses, created as any]
+                      setBuses(next)
+                      store.buses = next as any
+                      toast.success(`Bus ${busNumber} created`)
+                      setShowAddBus(false)
+                      setNewBusNumber('')
+                      setNewBusRoute('none')
+                    } catch (e: any) {
+                      toast.error(e?.message || 'Failed to create bus')
+                    }
+                  }}
+                >
+                  Create Bus
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           {loading ? (

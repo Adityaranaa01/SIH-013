@@ -4,12 +4,13 @@ import { DashboardLayout } from './components/DashboardLayout';
 import { DashboardOverview } from './components/DashboardOverview';
 import { RoutesPage } from './components/RoutesPage';
 import { BusesPage } from './components/BusesPage';
+import { AddDriverPage } from './components/AddDriverPage';
 import { TrackingPage } from './components/TrackingPage';
 import { RouteDetails } from './components/RouteDetails';
 import { Toaster } from './components/ui/sonner';
 import { AuthAPI } from './lib/api';
 
-type Page = 'dashboard' | 'routes' | 'buses' | 'tracking' | 'route-details';
+type Page = 'dashboard' | 'routes' | 'buses' | 'tracking' | 'route-details' | 'add-driver';
 
 interface Admin {
   id: string;
@@ -117,6 +118,8 @@ export default function App() {
           routeId={routeDetails.routeId} 
           onBack={() => setCurrentPage('routes')}
         />;
+      case 'add-driver':
+        return <AddDriverPage />;
       default:
         return <DashboardOverview 
           onCreateRoute={handleCreateRoute}

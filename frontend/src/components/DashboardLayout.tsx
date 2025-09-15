@@ -5,10 +5,10 @@ import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { Bus, LayoutDashboard, Route, MapPin, LogOut, Moon, Sun, Settings } from 'lucide-react';
+import { Bus, LayoutDashboard, Route, MapPin, LogOut, Moon, Sun, Settings, UserPlus } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
-type Page = 'dashboard' | 'routes' | 'buses' | 'tracking' | 'route-details';
+type Page = 'dashboard' | 'routes' | 'buses' | 'tracking' | 'route-details' | 'add-driver';
 
 interface Admin {
   id: string;
@@ -31,6 +31,7 @@ const navigationItems = [
   { id: 'routes' as Page, label: 'Routes', icon: Route },
   { id: 'buses' as Page, label: 'Buses', icon: Bus },
   { id: 'tracking' as Page, label: 'Tracking', icon: MapPin },
+  { id: 'add-driver' as Page, label: 'Add Driver', icon: UserPlus },
 ];
 
 export function DashboardLayout({

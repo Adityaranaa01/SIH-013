@@ -32,6 +32,14 @@ interface BusesTable {
   updated_at: ColumnType<string | null, string | null | undefined, string | null | undefined>
 }
 
+interface DriversTable {
+  driver_id: string
+  name: string
+  phone: string | null
+  created_at: ColumnType<string, string | undefined, string | undefined>
+  updated_at: ColumnType<string, string | undefined, string | undefined>
+}
+
 interface AdminUsersTable {
   admin_id: string
   name: string
@@ -44,6 +52,7 @@ export interface DB {
   routes: RoutesTable
   route_stops: RouteStopsTable
   buses: BusesTable
+  drivers: DriversTable
   admin_users: AdminUsersTable
 }
 

@@ -73,12 +73,18 @@ export const RoutesAPI = {
 
 export const BusesAPI = {
   list: () => api<Array<any>>(`/buses`),
+  create: (payload: { busNumber: string; assignedRoute?: string | null; driver?: string | null; status?: string | null }) => api(`/buses`, { method: 'POST', body: JSON.stringify(payload) }),
   update: (busNumber: string, payload: any) => api(`/buses/${busNumber}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 };
 
 export const MetricsAPI = {
   get: () => api<{ routesCount: number; busesCount: number; activeBusesCount: number; recentRoutes: Array<{ routeId: string; start: string; end: string; stops: number }> }>(`/metrics`),
 };
+
+export const DriversAPI = {
+  list: () => api<Array<{ id: string; name: string; phone?: string | null }>>(`/drivers`),
+  create: (payload: { id: string; name: string; phone?: string | null }) => api(`/drivers`, { method: 'POST', body: JSON.stringify(payload) }),
+}
 
 // Tracking APIs
 export const TrackingAPI = {
