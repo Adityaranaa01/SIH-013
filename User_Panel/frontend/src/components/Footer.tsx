@@ -1,3 +1,4 @@
+import React from "react";
 import { Navigation as NavigationIcon, Mail, Phone, MapPin } from "lucide-react";
 
 export function Footer() {

@@ -1,3 +1,4 @@
+import React from "react";
 import { Home, Map, Navigation as NavigationIcon, Info, Mail, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";

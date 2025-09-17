@@ -55,7 +55,6 @@ export function TrackingPage() {
   // Keep latest positions from socket for all buses
   const latestByBusRef = useRef<Map<string, { lat: number; lng: number; ts: string }>>(new Map());
   const [socketTick, setSocketTick] = useState(0); // force re-render when socket updates
-  const [legendOpen, setLegendOpen] = useState(true);
 
   // Fetch latest location from driver backend as an immediate fallback
   useEffect(() => {
@@ -324,37 +323,6 @@ export function TrackingPage() {
               <div className="w-2 h-2 rounded-full bg-green-500" /> Live Tracking
             </Badge>
 
-            {/* Legend toggle mini button */}
-            <button
-              aria-label={legendOpen ? 'Close legend' : 'Open legend'}
-              onClick={() => setLegendOpen(s => !s)}
-              className={`absolute left-4 ${legendOpen ? 'top-40' : 'top-4'} z-[999] p-2 rounded-md bg-card/90 border border-border/60 shadow-sm`}
-            >
-              <span className="text-xs">Legend</span>
-            </button>
-
-            {/* Legend card */}
-            {legendOpen && (
-              <Card className="absolute left-4 top-16 z-[999] bg-card/90 backdrop-blur-sm border-border/50 w-64">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Map Legend</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200" />
-                    <span>Selected Bus (Active)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-400 opacity-60" />
-                    <span>Other Buses (Dimmed)</span>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t">
-                    <div className="w-10 h-0.5 bg-gradient-to-r from-blue-500 to-purple-600" />
-                    <span>Active Route</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Center button */}
             <button
