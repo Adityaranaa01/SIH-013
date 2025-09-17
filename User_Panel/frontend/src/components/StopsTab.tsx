@@ -427,7 +427,7 @@ export function StopsTab() {
                       e.preventDefault();
                       const choice = pickupSuggestions[pickupActiveIndex];
                       if (choice) {
-                        setPickupPoint(choice);
+                        setPickupPoint(choice.text);
                         setShowPickupSuggestions(false);
                       }
                     } else if (e.key === "Escape") {
@@ -499,7 +499,7 @@ export function StopsTab() {
                       e.preventDefault();
                       const choice = destSuggestions[destActiveIndex];
                       if (choice) {
-                        setDestination(choice);
+                        setDestination(choice.text);
                         setShowDestSuggestions(false);
                       }
                     } else if (e.key === "Escape") {

@@ -1,5 +1,5 @@
 // src/components/MapView.tsx
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -135,7 +135,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     let positionUpdateCount = 0;
     let bestAccuracy = Infinity;
     let fallbackPosition: LatLngWithAccuracy | null = null;
-    let geolocationTimeout: NodeJS.Timeout | null = null;
+    let geolocationTimeout: number | null = null;
 
     // Set a timeout to handle cases where geolocation takes too long
     geolocationTimeout = setTimeout(() => {
@@ -375,7 +375,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             }
 
             // If this position is significantly better, accept it
-            if (pos.coords.accuracy < prevPos.accuracy * 0.7) {
+            if (prevPos.accuracy && pos.coords.accuracy < prevPos.accuracy * 0.7) {
               console.log(
                 "Updating to better position. New accuracy:",
                 pos.coords.accuracy,
@@ -398,7 +398,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
             // If current position is very poor (>1000m) and new one is better, accept it
             if (
-              prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
+              prevPos.accuracy && prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
               pos.coords.accuracy < prevPos.accuracy
             ) {
               console.log(
@@ -461,7 +461,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             "m)"
           );
           // If we have a position but it's very poor, show that we're still trying to improve
-          if (userPos && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
+          if (userPos && userPos.accuracy && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
             setLocationStatus(
               `Location found but accuracy is poor (±${Math.round(
                 userPos.accuracy
@@ -471,7 +471,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         }
 
         // After 10 position updates, if accuracy is still very poor, try restarting with different settings
-        if (positionUpdateCount >= 10 && userPos && userPos.accuracy > 10000) {
+        if (positionUpdateCount >= 10 && userPos && userPos.accuracy && userPos.accuracy > 10000) {
           console.log(
             "Accuracy still very poor after 10 updates, trying GPS-only mode"
           );
@@ -490,7 +490,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 pos.coords.accuracy,
                 "m"
               );
-              if (pos.coords.accuracy < userPos.accuracy) {
+              if (userPos.accuracy && pos.coords.accuracy < userPos.accuracy) {
                 setUserPos({
                   lat: pos.coords.latitude,
                   lng: pos.coords.longitude,
@@ -518,10 +518,9 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         if (positionUpdateCount >= 10 && !userPos && fallbackPosition) {
           console.log("Using fallback position after 10 updates");
           setUserPos(fallbackPosition);
+          const accuracy = (fallbackPosition as LatLngWithAccuracy).accuracy || 0;
           setLocationStatus(
-            `Using fallback location. Accuracy: ±${Math.round(
-              fallbackPosition.accuracy
-            )}m`
+            `Using fallback location. Accuracy: ±${Math.round(accuracy)}m`
           );
         }
       },
@@ -1001,7 +1000,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               )}
 
               {/* WiFi Positioning Warning - show if accuracy is very poor */}
-              {userPos && userPos.accuracy > 10000 && (
+              {userPos && userPos.accuracy && userPos.accuracy > 10000 && (
                 <Badge
                   variant="outline"
                   className="absolute top-28 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto max-w-xs"
@@ -1019,6 +1018,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
               {/* Force GPS Button - show if location exists but accuracy is poor */}
               {userPos &&
+                userPos.accuracy &&
                 userPos.accuracy > 1000 &&
                 userPos.accuracy <= 10000 && (
                   <Badge
