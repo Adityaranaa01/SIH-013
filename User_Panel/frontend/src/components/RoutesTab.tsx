@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import cityConfig from "../config/cityConfig";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -31,34 +30,126 @@ interface RouteData {
   stops: StopInfo[];
 }
 
-// Generate routes from city configuration
-const mockRoutes: RouteData[] = Object.entries(cityConfig.transport.routes).map(
-  ([routeId, route]) => ({
-    id: `RT-${routeId}`,
-    name: route.name,
-    startPoint: route.description.split(" → ")[0],
-    endPoint: route.description.split(" → ")[1],
-    totalStops: route.stops.length,
-    activeBuses: Math.floor(Math.random() * 3) + 1, // Random 1-3 active buses
-    avgTime: `${Math.floor(Math.random() * 30) + 30} min`, // Random 30-60 min
-    status: "active" as const,
-    stops: route.stops.map((stopName, index) => {
-      const landmark = cityConfig.landmarks[stopName];
-      return {
-        id: `ST-${routeId}-${index + 1}`,
-        name: stopName,
-        coordinates: landmark
-          ? { lat: landmark.lat, lng: landmark.lng }
-          : { lat: 12.9716, lng: 77.5946 },
-        estimatedTime: `${index * 5} min`,
-        amenities: landmark ? landmark.amenities : ["Bus Stop"],
-      };
-    }),
-  })
-);
+// No fallback: routes are fetched from the admin API
 
 export function RoutesTab() {
   const [selectedRoute, setSelectedRoute] = useState<RouteData | null>(null);
+  const [routes, setRoutes] = useState<RouteData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Determine Admin API base URL with sensible fallbacks
+  const adminApiBases = useMemo(() => {
+    const fromEnv = (import.meta as any)?.env?.VITE_ADMIN_API_BASE_URL as string | undefined;
+    // Try env first; otherwise try common dev ports used in this repo
+    const candidates = [fromEnv, "http://localhost:3011", "http://localhost:3001"]
+      .filter(Boolean) as string[];
+    return Array.from(new Set(candidates));
+  }, []);
+
+  // Fetch routes list from admin API
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      let lastErr: any = null;
+      for (const base of adminApiBases) {
+        try {
+          const res = await fetch(`${base}/routes`);
+          if (!res.ok) throw new Error(await res.text());
+          const data: Array<{
+            routeId: string;
+            start: string;
+            end: string;
+            name?: string | null;
+            stopsCount?: number;
+          }> = await res.json();
+
+          const mapped: RouteData[] = data.map((r) => ({
+            id: r.routeId,
+            name: r.name || r.routeId,
+            startPoint: r.start,
+            endPoint: r.end,
+            totalStops: r.stopsCount ?? 0,
+            activeBuses: 0,
+            avgTime: "-",
+            status: "active",
+            stops: [],
+          }));
+
+          if (!cancelled) {
+            setRoutes(mapped);
+            setError(null);
+          }
+          lastErr = null;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+        }
+      }
+      if (!cancelled) {
+        if (lastErr) setError("Failed to load routes from admin API.");
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adminApiBases]);
+
+  // When user selects a route, fetch detailed stops from admin API if available
+  const handleSelectRoute = async (route: RouteData) => {
+    // If we already have stops (from prior fetch), just open
+    if (route.stops && route.stops.length > 0) return setSelectedRoute(route);
+    try {
+      // Try all bases for details as well
+      let detailRes: Response | null = null;
+      let lastErr: any = null;
+      for (const base of adminApiBases) {
+        try {
+          const res = await fetch(`${base}/routes/${encodeURIComponent(route.id)}`);
+          if (!res.ok) throw new Error(await res.text());
+          detailRes = res;
+          lastErr = null;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+        }
+      }
+      if (!detailRes) throw lastErr || new Error("Route detail not available");
+      const detail: {
+        routeId: string;
+        start: string;
+        end: string;
+        name?: string | null;
+        stops: Array<{ stopNumber: number; name: string; lat: number; long: number }>;
+      } = await detailRes.json();
+
+      const stops: StopInfo[] = detail.stops.map((s) => ({
+        id: `ST-${detail.routeId}-${s.stopNumber}`,
+        name: s.name,
+        coordinates: { lat: s.lat, lng: s.long },
+        estimatedTime: `${s.stopNumber * 5} min`,
+        amenities: ["Bus Stop"],
+      }));
+
+      const enriched: RouteData = {
+        id: detail.routeId,
+        name: detail.name || route.name,
+        startPoint: detail.start,
+        endPoint: detail.end,
+        totalStops: stops.length,
+        activeBuses: 0,
+        avgTime: "-",
+        status: "active",
+        stops,
+      };
+      setSelectedRoute(enriched);
+    } catch {
+      setError("Failed to load route details.");
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -278,12 +369,15 @@ export function RoutesTab() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockRoutes.map((route) => (
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">Loading routes…</div>
+      ) : routes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {routes.map((route) => (
           <Card
             key={route.id}
             className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
-            onClick={() => setSelectedRoute(route)}
+            onClick={() => handleSelectRoute(route)}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -328,8 +422,14 @@ export function RoutesTab() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 text-muted-foreground">No routes found.</div>
+      )}
+      {error && (
+        <div className="text-center text-sm text-muted-foreground">{error}</div>
+      )}
     </div>
   );
 }

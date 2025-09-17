@@ -89,9 +89,8 @@ export const useRealTimeBusData = () => {
     // Fetch initial bus data from Supabase API
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/locations/active"
-        );
+        const base = (import.meta as any)?.env?.VITE_SOCKET_REST_BASE || "http://localhost:5000";
+        const response = await fetch(`${base}/api/locations/active`);
         const data = await response.json();
 
         if (data.success && data.data) {

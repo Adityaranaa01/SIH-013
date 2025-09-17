@@ -90,6 +90,14 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   );
   const watchIdRef = useRef<number | null>(null);
 
+  // Update selectedBus when real-time data changes for the same bus
+  useEffect(() => {
+    const updatedBus = allBuses.find(b => b.id === selectedBus.id);
+    if (updatedBus) {
+      setSelectedBus(updatedBus);
+    }
+  }, [allBuses, selectedBus.id]);
+
   useEffect(() => {
     const interval = setInterval(() => {}, 5000);
     return () => clearInterval(interval);
@@ -709,6 +717,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 <MapController center={selectedBusPosition} />
 
                 <Marker
+                  key={`selected-bus-${selectedBus.id}-${selectedBus.currentLocation.lat}-${selectedBus.currentLocation.lng}`}
                   position={selectedBusPosition}
                   icon={L.divIcon({
                     className: "custom-marker-selected",
@@ -733,7 +742,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                   .filter((b) => b.id !== selectedBus.id)
                   .map((bus) => (
                     <Marker
-                      key={bus.id}
+                      key={`bus-${bus.id}-${bus.currentLocation.lat}-${bus.currentLocation.lng}`}
                       position={[
                         bus.currentLocation.lat,
                         bus.currentLocation.lng,
