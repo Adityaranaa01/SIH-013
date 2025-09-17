@@ -1,7 +1,7 @@
+import { error } from 'console'
 import { Kysely, PostgresDialect, Selectable, ColumnType } from 'kysely'
 import pg from 'pg'
 
-// Minimal DB interface aligned to existing schema; extend as needed.
 interface RoutesTable {
   route_id: string
   name: ColumnType<string | null, string | null | undefined, string | null>
@@ -61,49 +61,58 @@ export type RouteStopRow = Selectable<RouteStopsTable>
 export type BusRow = Selectable<BusesTable>
 
 export function createDb() {
-  // Prefer a single connection string (e.g., Supabase) when provided
-  const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
-  const ssl = process.env.PGSSLMODE === 'require' || process.env.SSL === 'true' || (connectionString?.includes('sslmode=require'))
+  const rawUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
+  const sslEnabled =
+    process.env.PGSSLMODE === 'require' ||
+    process.env.SSL === 'true' ||
+    rawUrl?.includes('sslmode=require')
 
-  // For hosted providers like Supabase, cert chains may be self-signed. In that case,
-  // explicitly disable certificate verification to avoid SELF_SIGNED_CERT_IN_CHAIN.
-  // This still uses TLS, just without CA validation.
-  if (ssl) {
+  // Allow self-signed certs if SSL is enabled
+  if (sslEnabled) {
     try {
-      ;(pg as any).defaults.ssl = { rejectUnauthorized: false }
-    } catch {}
+      (pg as any).defaults.ssl = { rejectUnauthorized: false }
+    } catch {
+      error('Failed to set pg ssl defaults')
+    }
   }
 
-  // Normalize connection string: remove sslmode from URL and rely on explicit ssl options to avoid conflicting settings
-  let normalized = connectionString
+  let normalizedUrl = rawUrl
   try {
-    if (connectionString) {
-      const url = new URL(connectionString)
+    if (rawUrl) {
+      const url = new URL(rawUrl)
       url.searchParams.delete('sslmode')
-      normalized = url.toString()
+      normalizedUrl = url.toString()
     }
-  } catch {}
+  } catch {
+    error('Failed to clean connection string')
+  }
 
-  const pool = connectionString
-    ? new pg.Pool({ connectionString: normalized, ssl: ssl ? { rejectUnauthorized: false } : undefined, max: envInt('PGPOOL_MAX', 10) })
+  // Use connection string if available
+  const pool = rawUrl
+    ? new pg.Pool({
+        connectionString: normalizedUrl,
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        max: envInt('PGPOOL_MAX', 10),
+      })
     : new pg.Pool({
         host: process.env.PGHOST,
         port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
         database: process.env.PGDATABASE,
         user: process.env.PGUSER,
         password: process.env.PGPASSWORD,
-        ssl: ssl ? { rejectUnauthorized: false } : undefined,
-        max: envInt('PGPOOL_MAX', 10)
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        max: envInt('PGPOOL_MAX', 10),
       })
 
   return new Kysely<DB>({
-    dialect: new PostgresDialect({ pool })
+    dialect: new PostgresDialect({ pool }),
   })
 }
 
-function envInt(key: string, def: number) {
-  const v = process.env[key]
-  if (!v) return def
-  const n = Number(v)
-  return Number.isFinite(n) ? n : def
+function envInt(key: string, fallback: number) {
+  const value = process.env[key]
+  if (!value) return fallback
+
+  const num = Number(value)
+  return Number.isFinite(num) ? num : fallback
 }

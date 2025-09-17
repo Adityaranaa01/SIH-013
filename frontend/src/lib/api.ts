@@ -1,93 +1,225 @@
+// Base API URL (fallback to localhost during development)
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3011';
 
 type ApiOptions = RequestInit & { cacheTtlMs?: number };
 
-const getCache = new Map<string, { time: number; data: any; promise?: Promise<any> }>();
+// Simple in-memory cache for GET requests
+const requestCache = new Map<
+  string,
+  { time: number; data: any; promise?: Promise<any> }
+>();
 
+/**
+ * Core API helper.
+ * Handles JSON requests, response parsing, error handling, and optional GET caching.
+ */
 async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const method = String(options.method || 'GET').toUpperCase();
+  const method = (options.method ?? 'GET').toUpperCase();
   const url = `${API_BASE}${path}`;
-  const { cacheTtlMs, headers, ...rest } = options;
+  const { cacheTtlMs, headers, ...fetchOptions } = options;
 
-  // Simple GET cache with TTL (default 15s). Disable with cacheTtlMs=0.
-  const ttl = cacheTtlMs ?? (method === 'GET' ? 15000 : 0);
-  if (method === 'GET' && ttl > 0) {
-    const entry = getCache.get(url);
+  const shouldCache = method === 'GET';
+  const ttl = cacheTtlMs ?? (shouldCache ? 15_000 : 0);
+
+  // Try returning from cache first
+  if (shouldCache && ttl > 0) {
+    const cached = requestCache.get(url);
     const now = Date.now();
-    if (entry && now - entry.time < ttl) {
-      return entry.data as T;
+
+    if (cached && now - cached.time < ttl) {
+      return cached.data as T;
     }
-    if (entry?.promise) {
-      return entry.promise as Promise<T>;
+
+    // If a pending request exists, return that promise instead of making a new one
+    if (cached?.promise) {
+      return cached.promise as Promise<T>;
     }
-    const p = (async () => {
+
+    // Otherwise, make a new request and store the pending promise in cache
+    const pending = (async () => {
       const res = await fetch(url, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...(headers || {}) },
-        ...rest,
         method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(headers || {}),
+        },
+        ...fetchOptions,
       });
+
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(text || res.statusText);
+        const message = await res.text().catch(() => '');
+        throw new Error(message || res.statusText);
       }
-      const ct = res.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await res.json() : (undefined as unknown as T);
-      getCache.set(url, { time: Date.now(), data });
+
+      const isJson = res.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await res.json() : (undefined as unknown as T);
+
+      requestCache.set(url, { time: Date.now(), data });
       return data as T;
     })();
-    getCache.set(url, { time: 0, data: undefined, promise: p });
-    return p;
+
+    requestCache.set(url, { time: 0, data: undefined, promise: pending });
+    return pending;
   }
 
+  // Non-GET requests (no caching)
   const res = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
-    ...rest,
     method,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(headers || {}),
+    },
+    ...fetchOptions,
   });
+
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || res.statusText);
+    const message = await res.text().catch(() => '');
+    throw new Error(message || res.statusText);
   }
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) return res.json();
-  return undefined as unknown as T;
+
+  const isJson = res.headers.get('content-type')?.includes('application/json');
+  return isJson ? res.json() : (undefined as unknown as T);
 }
 
+// ------------------ API WRAPPERS ------------------
+
+// Authentication
 export const AuthAPI = {
   login: (adminId: string, password: string) =>
-    api<{ id: string; name: string }>(`/auth/login`, { method: 'POST', body: JSON.stringify({ adminId, password }) }),
+    api<{ id: string; name: string }>(`/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ adminId, password }),
+    }),
+
   me: () => api<{ id: string; name: string }>(`/me`),
-  logout: () => api<{ ok: boolean }>(`/auth/logout`, { method: 'POST' }),
+
+  logout: () =>
+    api<{ ok: boolean }>(`/auth/logout`, {
+      method: 'POST',
+    }),
 };
 
+// Routes
 export const RoutesAPI = {
-  list: () => api<Array<{ routeId: string; start: string; end: string; name?: string | null; stopsCount: number }>>(`/routes`),
-  get: (routeId: string) => api<{ routeId: string; start: string; end: string; name?: string | null; stops: Array<{ stopNumber: number; name: string; lat: number; long: number }> }>(`/routes/${routeId}`),
-  create: (payload: { routeId: string; start: string; end: string; name?: string | null; stops?: any[] }) => api(`/routes`, { method: 'POST', body: JSON.stringify(payload) }),
-  update: (routeId: string, payload: { start?: string; end?: string; name?: string | null; isActive?: boolean }) => api(`/routes/${routeId}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  replaceStops: (routeId: string, stops: any[]) => api(`/routes/${routeId}/stops`, { method: 'PUT', body: JSON.stringify({ stops }) }),
-  remove: (routeId: string) => api(`/routes/${routeId}`, { method: 'DELETE' }),
+  list: () =>
+    api<Array<{ routeId: string; start: string; end: string; name?: string | null; stopsCount: number }>>(`/routes`),
+
+  get: (routeId: string) =>
+    api<{
+      routeId: string;
+      start: string;
+      end: string;
+      name?: string | null;
+      stops: Array<{ stopNumber: number; name: string; lat: number; long: number }>;
+    }>(`/routes/${routeId}`),
+
+  create: (payload: {
+    routeId: string;
+    start: string;
+    end: string;
+    name?: string | null;
+    stops?: any[];
+  }) =>
+    api(`/routes`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  update: (routeId: string, payload: {
+    start?: string;
+    end?: string;
+    name?: string | null;
+    isActive?: boolean;
+  }) =>
+    api(`/routes/${routeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  replaceStops: (routeId: string, stops: any[]) =>
+    api(`/routes/${routeId}/stops`, {
+      method: 'PUT',
+      body: JSON.stringify({ stops }),
+    }),
+
+  remove: (routeId: string) =>
+    api(`/routes/${routeId}`, {
+      method: 'DELETE',
+    }),
 };
 
+// Buses
 export const BusesAPI = {
   list: () => api<Array<any>>(`/buses`),
-  create: (payload: { busNumber: string; assignedRoute?: string | null; driver?: string | null; status?: string | null }) => api(`/buses`, { method: 'POST', body: JSON.stringify(payload) }),
-  update: (busNumber: string, payload: any) => api(`/buses/${busNumber}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  create: (payload: {
+    busNumber: string;
+    assignedRoute?: string | null;
+    driver?: string | null;
+    status?: string | null;
+  }) =>
+    api(`/buses`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  update: (busNumber: string, payload: any) =>
+    api(`/buses/${busNumber}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
 };
 
+// Metrics
 export const MetricsAPI = {
-  get: () => api<{ routesCount: number; busesCount: number; activeBusesCount: number; recentRoutes: Array<{ routeId: string; start: string; end: string; stops: number }> }>(`/metrics`),
+  get: () =>
+    api<{
+      routesCount: number;
+      busesCount: number;
+      activeBusesCount: number;
+      recentRoutes: Array<{
+        routeId: string;
+        start: string;
+        end: string;
+        stops: number;
+      }>;
+    }>(`/metrics`),
 };
 
+// Drivers
 export const DriversAPI = {
-  list: () => api<Array<{ id: string; name: string; phone?: string | null }>>(`/drivers`),
-  create: (payload: { id: string; name: string; phone?: string | null }) => api(`/drivers`, { method: 'POST', body: JSON.stringify(payload) }),
-}
+  list: () =>
+    api<Array<{ id: string; name: string; phone?: string | null }>>(`/drivers`),
 
-// Tracking APIs
+  create: (payload: { id: string; name: string; phone?: string | null }) =>
+    api(`/drivers`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+};
+
+// Tracking
 export const TrackingAPI = {
-  activeBuses: () => api<Array<{ id: string; plateNumber: string; status: string; assignedRoute: string | null; driver: string | null }>>(`/tracking/active-buses`, { cacheTtlMs: 0 }),
-  positions: (bus: string, since?: string) => api<{ positions: Array<{ latitude: number; longitude: number; recorded_at: string }> }>(`/tracking/positions${since ? `?bus=${encodeURIComponent(bus)}&since=${encodeURIComponent(since)}` : `?bus=${encodeURIComponent(bus)}`}`, { cacheTtlMs: 0 }),
-}
+  activeBuses: () =>
+    api<
+      Array<{
+        id: string;
+        plateNumber: string;
+        status: string;
+        assignedRoute: string | null;
+        driver: string | null;
+      }>
+    >(`/tracking/active-buses`, { cacheTtlMs: 0 }),
+
+  positions: (bus: string, since?: string) =>
+    api<{ positions: Array<{ latitude: number; longitude: number; recorded_at: string }> }>(
+      `/tracking/positions${
+        since
+          ? `?bus=${encodeURIComponent(bus)}&since=${encodeURIComponent(since)}`
+          : `?bus=${encodeURIComponent(bus)}`
+      }`,
+      { cacheTtlMs: 0 }
+    ),
+};

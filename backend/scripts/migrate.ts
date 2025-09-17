@@ -3,48 +3,62 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
 import pg from 'pg'
+import { error } from 'node:console'
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
-  const ssl = process.env.PGSSLMODE === 'require' || (connectionString?.includes('sslmode=require'))
+  const rawConn = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
+  const sslEnabled =
+    process.env.PGSSLMODE === 'require' ||
+    (rawConn && rawConn.includes('sslmode=require'))
 
-  // Match server behavior: for hosted providers, disable CA verification to avoid SELF_SIGNED_CERT_IN_CHAIN
-  if (ssl) {
-    try { (pg as any).defaults.ssl = { rejectUnauthorized: false } } catch {}
+  if (sslEnabled) {
+    try {
+      (pg as any).defaults.ssl = { rejectUnauthorized: false }
+    } catch {
+      error('Failed to set pg ssl defaults')
+    }
   }
 
-  // Normalize: strip sslmode from URL and rely on explicit ssl option
-  let normalized = connectionString
-  try {
-    if (connectionString) {
-      const url = new URL(connectionString)
+  let cleanConn = rawConn
+  if (rawConn) {
+    try {
+      const url = new URL(rawConn)
       url.searchParams.delete('sslmode')
-      normalized = url.toString()
+      cleanConn = url.toString()
+    } catch {
+      error('Failed to clean connection string')
     }
-  } catch {}
+  }
 
-  const pool = connectionString
-    ? new pg.Pool({ connectionString: normalized, ssl: ssl ? { rejectUnauthorized: false } : undefined })
+  // Create a connection pool
+  const pool = rawConn
+    ? new pg.Pool({
+        connectionString: cleanConn,
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      })
     : new pg.Pool({
         host: process.env.PGHOST,
         port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
         database: process.env.PGDATABASE,
         user: process.env.PGUSER,
         password: process.env.PGPASSWORD,
-        ssl: ssl ? { rejectUnauthorized: false } : undefined,
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
       })
 
   const client = await pool.connect()
+
   try {
-    const __dirnameLocal = path.dirname(fileURLToPath(import.meta.url))
-    const migrationsDir = path.resolve(__dirnameLocal, '../../db/migrations')
+    const __dirname = path.dirname(fileURLToPath(import.meta.url))
+    const migrationsDir = path.resolve(__dirname, '../../db/migrations')
+
     const files = (await fs.readdir(migrationsDir))
-      .filter(f => f.endsWith('.sql'))
+      .filter((f) => f.endsWith('.sql'))
       .sort()
+
     console.log(`Running ${files.length} migrations from ${migrationsDir}`)
+
     for (const file of files) {
-      const full = path.join(migrationsDir, file)
-      const sql = await fs.readFile(full, 'utf8')
+      const sql = await fs.readFile(path.join(migrationsDir, file), 'utf8')
       console.log(`\n>>> Applying ${file}`)
       await client.query(sql)
       console.log(`<<< Done ${file}`)

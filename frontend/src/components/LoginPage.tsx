@@ -123,8 +123,6 @@ export function LoginPage({ onLogin, theme = 'light', onThemeToggle }: LoginPage
             </form>
           </CardContent>
         </Card>
-
-        {/* No sample credentials shown */}
       </div>
     </div>
   );

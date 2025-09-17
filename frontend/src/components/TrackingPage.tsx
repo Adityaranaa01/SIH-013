@@ -3,120 +3,146 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { TrackingAPI } from '../lib/api';
 
-// Lazy-load Leaflet only on client
 function useLeaflet() {
-  const [L, setL] = useState<any>(null)
+  const [L, setL] = useState<any>(null);
+
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      // Ensure Leaflet CSS is loaded
-      const cssId = 'leaflet-css'
+    let mounted = true;
+
+    (async () => {
+      const cssId = 'leaflet-css';
       if (!document.getElementById(cssId)) {
-        const link = document.createElement('link')
-        link.id = cssId
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
+        const link = document.createElement('link');
+        link.id = cssId;
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
       }
-      const leaflet = await import('leaflet')
-      // default icon fix for Vite bundling
+
+      const leaflet = await import('leaflet');
       // @ts-ignore
-      delete (leaflet.Icon.Default.prototype as any)._getIconUrl
+      delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
       leaflet.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      })
-      if (mounted) setL(leaflet)
-    })()
-    return () => { mounted = false }
-  }, [])
-  return L
+      });
+
+      if (mounted) setL(leaflet);
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  return L;
 }
 
 export function TrackingPage() {
-  const [activeBuses, setActiveBuses] = useState<Array<{ id: string; plateNumber: string; driver: string | null; assignedRoute: string | null }>>([])
-  const [selectedBus, setSelectedBus] = useState<string | null>(null)
-  const [positions, setPositions] = useState<Array<{ latitude: number; longitude: number; recorded_at: string }>>([])
-  const [since, setSince] = useState<string | undefined>(undefined)
-  const L = useLeaflet()
-  const mapRef = useRef<any>(null)
-  const markerRef = useRef<any>(null)
-  const polyRef = useRef<any>(null)
+  const [activeBuses, setActiveBuses] = useState<
+    Array<{ id: string; plateNumber: string; driver: string | null; assignedRoute: string | null }>
+  >([]);
+  const [selectedBus, setSelectedBus] = useState<string | null>(null);
+  const [positions, setPositions] = useState<Array<{ latitude: number; longitude: number; recorded_at: string }>>([]);
+  const [since, setSince] = useState<string | undefined>(undefined);
 
-  // Fetch active buses every 10s
+  const L = useLeaflet();
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const polyRef = useRef<any>(null);
+
+  // Poll active buses every 10 seconds
   useEffect(() => {
-    let stop = false
-    const tick = async () => {
+    let stopped = false;
+
+    const pollBuses = async () => {
       try {
-        const buses = await TrackingAPI.activeBuses()
-        if (stop) return
-        setActiveBuses(buses)
-        // Keep selected if still present, else clear
+        const buses = await TrackingAPI.activeBuses();
+        if (stopped) return;
+
+        setActiveBuses(buses);
+
+        // Reset selected bus if it disappeared
         if (selectedBus && !buses.find(b => b.id === selectedBus)) {
-          setSelectedBus(null)
-          setPositions([])
-          setSince(undefined)
+          setSelectedBus(null);
+          setPositions([]);
+          setSince(undefined);
         }
-      } catch {}
-      if (!stop) setTimeout(tick, 10000)
-    }
-    tick()
-    return () => { stop = true }
-  }, [selectedBus])
+      } catch (err) {
+        console.error('Error fetching active buses', err);
+      }
 
-  // Poll positions every 5s for selected bus
+      if (!stopped) setTimeout(pollBuses, 10000);
+    };
+
+    pollBuses();
+    return () => { stopped = true; };
+  }, [selectedBus]);
+
+  // Poll positions for selected bus every 5 seconds
   useEffect(() => {
-    if (!selectedBus) return
-    let stop = false
-    const tick = async () => {
+    if (!selectedBus) return;
+
+    let stopped = false;
+
+    const pollPositions = async () => {
       try {
-        const res = await TrackingAPI.positions(selectedBus, since)
-        if (stop) return
-        const newPts = res.positions || []
-        if (newPts.length) {
-          setPositions(prev => [...prev, ...newPts])
-          setSince(newPts[newPts.length - 1].recorded_at)
-        }
-      } catch {}
-      if (!stop) setTimeout(tick, 5000)
-    }
-    tick()
-    return () => { stop = true }
-  }, [selectedBus, since])
+        const res = await TrackingAPI.positions(selectedBus, since);
+        if (stopped) return;
 
-  // Initialize/update map
+        const newPositions = res.positions || [];
+        if (newPositions.length) {
+          setPositions(prev => [...prev, ...newPositions]);
+          setSince(newPositions[newPositions.length - 1].recorded_at);
+        }
+      } catch (err) {
+        console.error('Error fetching positions', err);
+      }
+
+      if (!stopped) setTimeout(pollPositions, 5000);
+    };
+
+    pollPositions();
+    return () => { stopped = true; };
+  }, [selectedBus, since]);
+
+  // Initialize or update Leaflet map
   useEffect(() => {
-    if (!L) return
+    if (!L) return;
+
     if (!mapRef.current) {
-      mapRef.current = L.map('live-map', { center: [12.9716, 77.5946], zoom: 12 })
+      mapRef.current = L.map('live-map', { center: [12.9716, 77.5946], zoom: 12 });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(mapRef.current)
+      }).addTo(mapRef.current);
     }
+
     if (positions.length) {
-      const last = positions[positions.length - 1]
-      const latlng = [last.latitude, last.longitude] as [number, number]
+      const last = positions[positions.length - 1];
+      const latlng: [number, number] = [last.latitude, last.longitude];
+
       if (!markerRef.current) {
-        markerRef.current = L.marker(latlng).addTo(mapRef.current)
+        markerRef.current = L.marker(latlng).addTo(mapRef.current);
       } else {
-        markerRef.current.setLatLng(latlng)
+        markerRef.current.setLatLng(latlng);
       }
+
       if (!polyRef.current) {
-        polyRef.current = L.polyline(positions.map(p => [p.latitude, p.longitude]), { color: 'blue' }).addTo(mapRef.current)
+        polyRef.current = L.polyline(positions.map(p => [p.latitude, p.longitude]), { color: 'blue' }).addTo(mapRef.current);
       } else {
-        polyRef.current.setLatLngs(positions.map(p => [p.latitude, p.longitude]))
+        polyRef.current.setLatLngs(positions.map(p => [p.latitude, p.longitude]));
       }
-      mapRef.current.setView(latlng, mapRef.current.getZoom())
+
+      mapRef.current.setView(latlng, mapRef.current.getZoom());
     } else {
-      // clear overlays when no positions
-      if (polyRef.current) { polyRef.current.remove(); polyRef.current = null }
-      if (markerRef.current) { markerRef.current.remove(); markerRef.current = null }
+      // Remove markers if no positions
+      if (polyRef.current) { polyRef.current.remove(); polyRef.current = null; }
+      if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
     }
-  }, [L, positions])
+  }, [L, positions]);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-gradient-primary tracking-tight">Tracking</h2>
@@ -132,18 +158,20 @@ export function TrackingPage() {
             <div className="text-muted-foreground">No running buses.</div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {activeBuses.map(b => (
+              {activeBuses.map(bus => (
                 <button
-                  key={b.id}
+                  key={bus.id}
                   onClick={() => {
-                    setSelectedBus(b.id)
-                    setPositions([])
-                    setSince(undefined)
+                    setSelectedBus(bus.id);
+                    setPositions([]);
+                    setSince(undefined);
                   }}
-                  className={`px-3 py-2 rounded-md border ${selectedBus === b.id ? 'border-primary text-primary' : 'border-muted-foreground/20'}`}
-                  title={`Route: ${b.assignedRoute || '-'} | Driver: ${b.driver || '-'}`}
+                  className={`px-3 py-2 rounded-md border ${
+                    selectedBus === bus.id ? 'border-primary text-primary' : 'border-muted-foreground/20'
+                  }`}
+                  title={`Route: ${bus.assignedRoute || '-'} | Driver: ${bus.driver || '-'}`}
                 >
-                  {b.plateNumber}
+                  {bus.plateNumber}
                 </button>
               ))}
             </div>
@@ -158,5 +186,5 @@ export function TrackingPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

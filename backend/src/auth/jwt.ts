@@ -7,10 +7,9 @@ const COOKIE_OPTIONS = {
   sameSite: 'lax' as const,
   secure: process.env.NODE_ENV === 'production',
   path: '/',
-  maxAge: 60 * 60 * 8 // 8h
+  maxAge: 60 * 60 * 8, // 8 hours
 }
 
-// Add explicit domain for localhost in dev to help curl and some clients store it
 if (process.env.NODE_ENV !== 'production') {
   ;(COOKIE_OPTIONS as any).domain = 'localhost'
 }
@@ -21,7 +20,12 @@ export function signSession(payload: { id: string; name: string }) {
 
 export function verifySession(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: string; name: string; iat: number; exp: number }
+    return jwt.verify(token, JWT_SECRET) as {
+      id: string
+      name: string
+      iat: number
+      exp: number
+    }
   } catch {
     return null
   }

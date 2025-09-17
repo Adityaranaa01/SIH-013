@@ -20,7 +20,7 @@ interface Route {
   end: string;
   name?: string | null;
   stops: Stop[];
-  stopsCount?: number; // derived from backend listing; keep in sync on save
+  stopsCount?: number;
 }
 
 interface RoutesPageProps {

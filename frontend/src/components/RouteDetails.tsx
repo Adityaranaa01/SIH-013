@@ -27,14 +27,37 @@ interface RouteDetailsProps {
 }
 
 export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  // No mock data – start without a route; expect parent to load and pass data later
   const [route, setRoute] = useState<Route | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  // Fetch route on mount or when routeId changes
   useEffect(() => {
     if (!routeId) return;
-    RoutesAPI.get(routeId).then(setRoute).catch(() => setRoute(null));
+
+    setLoading(true);
+    RoutesAPI.get(routeId)
+      .then(setRoute)
+      .catch(() => setRoute(null))
+      .finally(() => setLoading(false));
   }, [routeId]);
+
+  const handleSaveRoute = async (updated: Route) => {
+    try {
+      await RoutesAPI.update(updated.routeId, { start: updated.start, end: updated.end });
+      await RoutesAPI.replaceStops(
+        updated.routeId,
+        updated.stops.map(s => ({ stopNumber: s.stopNumber, name: s.name, lat: s.lat, long: s.long }))
+      );
+      setRoute(updated);
+    } catch (err) {
+      console.error('Failed to save route', err);
+    }
+  };
+
+  if (loading) {
+    return <div className="py-12 text-center text-muted-foreground">Loading route…</div>;
+  }
 
   if (!route) {
     return (
@@ -46,30 +69,20 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
           </Button>
         </div>
         <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-medium">Route Not Found</h3>
-              <p className="text-muted-foreground">
-                {routeId ? `The requested route (${routeId}) could not be found.` : 'No route selected.'}
-              </p>
-              <div className="pt-4">
-                <Button onClick={() => setIsEditModalOpen(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Create Route
-                </Button>
-              </div>
-            </div>
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+            <h3 className="text-lg font-medium">Route Not Found</h3>
+            <p className="text-muted-foreground">
+              {routeId ? `The requested route (${routeId}) could not be found.` : 'No route selected.'}
+            </p>
+            <Button onClick={() => setIsEditModalOpen(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Create Route
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  const handleSaveRoute = async (updatedRoute: Route) => {
-    await RoutesAPI.update(updatedRoute.routeId, { start: updatedRoute.start, end: updatedRoute.end });
-    await RoutesAPI.replaceStops(updatedRoute.routeId, updatedRoute.stops.map(s => ({ stopNumber: s.stopNumber, name: s.name, lat: s.lat, long: s.long })));
-    setRoute(updatedRoute);
-  };
 
   return (
     <div className="space-y-6">
@@ -84,9 +97,7 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
             <h2 className="text-2xl font-semibold tracking-tight">
               {route.name ? `${route.name} (${route.routeId})` : route.routeId}: {route.start} → {route.end}
             </h2>
-            <p className="text-muted-foreground">
-              Route details and stop information
-            </p>
+            <p className="text-muted-foreground">Route details and stop information</p>
           </div>
         </div>
         <Button onClick={() => setIsEditModalOpen(true)}>
@@ -95,41 +106,37 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-1">
-        {/* Route Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Route Information</CardTitle>
-            <CardDescription>Basic route details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Route ID</h4>
-                <p className="font-medium">{route.routeId}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Name</h4>
-                <p className="font-medium">{route.name || '-'}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Total Stops</h4>
-                <p className="font-medium">{route.stops.length}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Start Point</h4>
-                <p className="font-medium">{route.start}</p>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground">End Point</h4>
-                <p className="font-medium">{route.end}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Route Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Route Information</CardTitle>
+          <CardDescription>Basic route details</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4">
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">Route ID</h4>
+            <p className="font-medium">{route.routeId}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">Name</h4>
+            <p className="font-medium">{route.name || '-'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">Total Stops</h4>
+            <p className="font-medium">{route.stops.length}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">Start Point</h4>
+            <p className="font-medium">{route.start}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground">End Point</h4>
+            <p className="font-medium">{route.end}</p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Stops List */}
+      {/* Stops Table */}
       <Card>
         <CardHeader>
           <CardTitle>Route Stops</CardTitle>
@@ -147,7 +154,7 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {route.stops.map((stop) => (
+              {route.stops.map(stop => (
                 <TableRow key={stop.stopNumber}>
                   <TableCell className="font-medium">{stop.stopNumber}</TableCell>
                   <TableCell>{stop.name}</TableCell>
@@ -163,7 +170,7 @@ export function RouteDetails({ routeId, onBack }: RouteDetailsProps) {
         </CardContent>
       </Card>
 
-      {/* Edit Route Modal */}
+      {/* Edit Modal */}
       <RouteFormModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
