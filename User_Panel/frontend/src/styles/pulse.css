@@ -1,0 +1,68 @@
+/* pulse.css - focused styles to ensure the user location pulse is visible and not clipped */
+
+/* Make Marker panes overflow visible so the expanding ring isn't clipped */
+.leaflet-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-overlay-pane {
+    overflow: visible !important;
+}
+
+/* Strong, specific rules for our user marker */
+.leaflet-user-marker {
+    overflow: visible !important;
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    /* allow clicks on the marker to open popup */
+}
+
+.leaflet-user-marker .user-pulse {
+    position: relative !important;
+    display: inline-block !important;
+    width: 40px !important;
+    height: 40px !important;
+    transform: translate(-50%, -50%) !important;
+    pointer-events: none !important;
+}
+
+.leaflet-user-marker .user-pulse-dot {
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    background: var(--neon-green, #10b981) !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7) !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    pointer-events: none !important;
+}
+
+.leaflet-user-marker .user-pulse-ring {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(16, 185, 129, 0.18) !important;
+    animation: user-pulse 1.6s infinite ease-out !important;
+    pointer-events: none !important;
+}
+
+@keyframes user-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.6) !important;
+        opacity: 0.9 !important;
+    }
+
+    70% {
+        transform: translate(-50%, -50%) scale(2.0) !important;
+        opacity: 0 !important;
+    }
+
+    100% {
+        opacity: 0 !important;
+    }
+}
