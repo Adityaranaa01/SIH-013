@@ -35,11 +35,57 @@ export const useRealTimeBusData = () => {
     loadRoutes();
   }, []);
 
+  // Fallback: Load initial bus data from database
+  useEffect(() => {
+    const loadInitialBusData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          "http://localhost:5000/api/locations/active"
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const initialBuses = result.data.map((location: any) => ({
+              id: location.trip_id || location.bus_number || "unknown",
+              route:
+                location.route_name ||
+                `Route ${location.trip_id?.slice(-4) || "Unknown"}`,
+              currentLocation: {
+                lat: location.latitude,
+                lng: location.longitude,
+              },
+              eta: "Live",
+              timeToDestination: "Live",
+              nextStop: "Live Tracking",
+              isActive: true,
+              lastUpdate: location.timestamp,
+              routeColor: location.route_color || "#1f77b4",
+              routeDescription: location.route_description || "Live Tracking",
+            }));
+            setBuses(initialBuses);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load initial bus data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Load initial data if no WebSocket connection or no buses yet
+    if (!isConnected || buses.length === 0) {
+      loadInitialBusData();
+    }
+  }, [isConnected, buses.length]);
+
   useEffect(() => {
     if (!socket) return;
 
     // Listen for bus location updates
     const handleLocationUpdate = (data: any) => {
+      console.log("📍 Received bus-location-update:", data);
+
       // Get route details from dynamic routes (fallback only)
       const routeDetails =
         routes.find((route) => route.route_id === data.routeId) ||
@@ -96,8 +142,10 @@ export const useRealTimeBusData = () => {
       }
     };
 
+    console.log("🔌 Setting up WebSocket event listeners");
     socket.on("bus-location-update", handleLocationUpdate);
     socket.on("bus-status-update", handleStatusUpdate);
+    console.log("✅ WebSocket event listeners registered");
 
     // Fetch initial bus data from Supabase API
     const fetchInitialData = async () => {
@@ -150,9 +198,57 @@ export const useRealTimeBusData = () => {
 
     fetchInitialData();
 
+    // Set up periodic refresh as fallback (every 10 seconds)
+    const refreshInterval = setInterval(async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/locations/active"
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const updatedBuses = result.data.map((location: any) => {
+              const routeDetails =
+                routes.find((route) => route.route_id === location.routeId) ||
+                routeService.getRouteById(location.routeId);
+              return {
+                id: location.busNumber || location.tripId,
+                route:
+                  location.routeName ||
+                  location.routeId ||
+                  routeDetails?.route_name ||
+                  `Route ${location.tripId?.slice(-4) || "Unknown"}`,
+                currentLocation: {
+                  lat: location.latitude,
+                  lng: location.longitude,
+                },
+                eta: "Live",
+                timeToDestination: "Live",
+                nextStop: "Live Tracking",
+                isActive: true,
+                lastUpdate: location.timestamp,
+                routeColor:
+                  location.routeColor || routeDetails?.color || "#1f77b4",
+                routeDescription:
+                  location.routeDescription ||
+                  routeDetails?.description ||
+                  "Live Tracking",
+              };
+            });
+
+            // Update buses with fresh data
+            setBuses(updatedBuses);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to refresh bus data:", error);
+      }
+    }, 10000); // 10 seconds
+
     return () => {
       socket.off("bus-location-update", handleLocationUpdate);
       socket.off("bus-status-update", handleStatusUpdate);
+      clearInterval(refreshInterval);
     };
   }, [socket, routes]);
 

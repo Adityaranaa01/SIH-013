@@ -42,6 +42,28 @@ router.post('/', async (req, res) => {
 });
 
 /**
+ * GET /api/locations/active
+ * Get active bus locations
+ */
+router.get('/active', async (req, res) => {
+  try {
+    const result = await LocationService.getActiveLocations();
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get active locations endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+/**
  * GET /api/locations/trip/:tripId
  * Get location history for a trip
  */

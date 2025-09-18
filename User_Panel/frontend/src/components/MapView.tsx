@@ -7,6 +7,7 @@ import {
   Popup,
   useMap,
   Circle,
+  Polyline,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -88,12 +89,45 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   const [locationStatus, setLocationStatus] = useState<string>(
     "Getting location..."
   );
+  const [busLocationHistory, setBusLocationHistory] = useState<
+    Array<{ lat: number; lng: number; timestamp: number }>
+  >([]);
   const watchIdRef = useRef<number | null>(null);
 
+  // Update selectedBus when allBuses data changes (from WebSocket updates)
   useEffect(() => {
-    const interval = setInterval(() => {}, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    const updatedBus = allBuses.find(
+      (busItem) => busItem.id === selectedBus.id
+    );
+    if (updatedBus) {
+      setSelectedBus(updatedBus);
+
+      // Add to location history for path visualization
+      const newLocation = {
+        lat: updatedBus.currentLocation.lat,
+        lng: updatedBus.currentLocation.lng,
+        timestamp: Date.now(),
+      };
+
+      setBusLocationHistory((prev) => {
+        // Only add if location has actually changed (not just a refresh)
+        const lastLocation = prev[prev.length - 1];
+        if (
+          !lastLocation ||
+          lastLocation.lat !== newLocation.lat ||
+          lastLocation.lng !== newLocation.lng
+        ) {
+          return [...prev, newLocation];
+        }
+        return prev;
+      });
+    }
+  }, [allBuses, selectedBus.id]);
+
+  // Clear location history when switching to a different bus
+  useEffect(() => {
+    setBusLocationHistory([]);
+  }, [selectedBus.id]);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
@@ -764,6 +798,21 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                       </Popup>
                     </Marker>
                   ))}
+
+                {/* Bus Movement Path */}
+                {busLocationHistory.length > 1 && (
+                  <Polyline
+                    positions={busLocationHistory.map((loc) => [
+                      loc.lat,
+                      loc.lng,
+                    ])}
+                    pathOptions={{
+                      color: "#ef4444",
+                      weight: 4,
+                      opacity: 0.8,
+                    }}
+                  />
+                )}
 
                 {userPos && (
                   <>

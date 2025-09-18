@@ -28,7 +28,7 @@ function MapController({ center }) {
     return null;
 }
 
-const LiveTrackingModal = ({ isOpen, onClose, trip }) => {
+const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
     const [busLocation, setBusLocation] = useState(null);
     const [locationHistory, setLocationHistory] = useState([]);
     const [isConnected, setIsConnected] = useState(false);
@@ -48,6 +48,28 @@ const LiveTrackingModal = ({ isOpen, onClose, trip }) => {
                 socketRef.current.disconnect();
             }
         };
+    }, [isOpen, trip]);
+
+    // Update bus location when realTimeLocation prop changes (from parent WebSocket)
+    useEffect(() => {
+        if (realTimeLocation) {
+            console.log('📍 LiveTrackingModal received real-time location update:', realTimeLocation);
+            updateBusLocation(realTimeLocation);
+        }
+    }, [realTimeLocation]);
+
+    // Set up periodic refresh for location data (every 3 seconds as backup)
+    useEffect(() => {
+        if (!isOpen || !trip) return;
+
+        const refreshInterval = setInterval(() => {
+            // Request fresh location data
+            if (socketRef.current && socketRef.current.connected) {
+                socketRef.current.emit('request-location', { tripId: trip.trip_id });
+            }
+        }, 3000);
+
+        return () => clearInterval(refreshInterval);
     }, [isOpen, trip]);
 
     // Fix map size when it mounts

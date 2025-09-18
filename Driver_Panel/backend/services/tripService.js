@@ -5,7 +5,7 @@ import { supabase } from '../config/database.js';
  * Trip management service
  */
 export class TripService {
-  
+
   /**
    * Check if driver has an active trip
    * @param {string} driverId - Driver ID
@@ -125,6 +125,15 @@ export class TripService {
         const busNumber = data.bus_number;
         await supabase.from('drivers').update({ status: 'active', current_bus: busNumber }).eq('driver_id', driverId);
         await supabase.from('buses').update({ status: 'assigned', current_driver: driverId }).eq('bus_number', busNumber);
+      }
+
+      // Clean up location data for the ended trip
+      try {
+        const { CleanupService } = await import('./cleanupService.js');
+        await CleanupService.cleanupTripLocations(tripId);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup location data for ended trip:', cleanupError);
+        // Don't fail the trip ending if cleanup fails
       }
 
       return {

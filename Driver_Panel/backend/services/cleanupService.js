@@ -2,87 +2,175 @@
 import { supabase } from '../config/database.js';
 
 /**
- * Background cleanup job to delete intermediary coordinates for completed trips
- * Strategy:
- * - Periodically (every 30s) find trips completed > 1 minute ago
- * - For each such trip, keep the latest bus_locations row and delete the rest
- * - Mark trip as cleaned to avoid repeated work (uses a helper table or a metadata flag)
- *
- * Note: For a production-grade solution on Supabase, consider using Postgres
- * cron (pg_cron) or a Supabase scheduled function. This in-process job is
- * acceptable for a single-instance dev deployment.
+ * Cleanup service for managing old data
  */
+export class CleanupService {
 
-const CLEANUP_INTERVAL_MS = 30_000; // run every 30s
-const GRACE_PERIOD_MS = 60_000; // 1 minute after trip end
-
-async function getCompletedTripsNeedingCleanup() {
-  // Fetch trips where status = 'ended' and end_time older than 1 minute
-  const cutoffIso = new Date(Date.now() - GRACE_PERIOD_MS).toISOString();
-  const { data, error } = await supabase
-    .from('trips')
-    .select('trip_id')
-.eq('status', 'ended')
-    .lt('end_time', cutoffIso);
-
-  if (error) throw error;
-  return data || [];
-}
-
-async function cleanupTripLocations(tripId) {
-  // Find latest location id for the trip
-  const { data: latest, error: latestErr } = await supabase
-    .from('trip_locations')
-    .select('location_id')
-    .eq('trip_id', tripId)
-    .order('timestamp', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (latestErr) throw latestErr;
-
-  // If no locations, nothing to do
-  if (!latest) return { success: true, deleted: 0 };
-
-  const latestId = latest.location_id ?? latest.id;
-
-  // Delete all other locations for the trip
-  const { error: delErr, count } = await supabase
-    .from('trip_locations')
-    .delete({ count: 'exact' })
-    .eq('trip_id', tripId)
-    .neq('location_id', latestId);
-
-  if (delErr) throw delErr;
-  return { success: true, deleted: count ?? 0 };
-}
-
-export function startCleanupJob() {
-  const run = async () => {
+  /**
+   * Clean up old location data for ended trips only
+   * @param {number} hoursOld - Age in hours for ended trips (default: 24 hours)
+   * @returns {Promise<Object>} Cleanup result
+   */
+  static async cleanupOldLocations(hoursOld = 24) {
     try {
-      const trips = await getCompletedTripsNeedingCleanup();
-      if (!trips.length) return;
+      const cutoffTime = new Date();
+      cutoffTime.setHours(cutoffTime.getHours() - hoursOld);
 
-      for (const t of trips) {
-        try {
-          const result = await cleanupTripLocations(t.trip_id);
-          if (result.success) {
-            // Optional: could mark a cleaned flag if schema supports it
-            // For now, deletion is idempotent; repeats will delete 0 rows
-            // console.log(`Cleanup for trip ${t.trip_id}: deleted ${result.deleted} rows`);
-          }
-        } catch (err) {
-          console.error(`Cleanup failed for trip ${t.trip_id}:`, err.message || err);
-        }
+      console.log(`Cleaning up location data for ended trips older than ${hoursOld} hour(s): ${cutoffTime.toISOString()}`);
+
+      // Only delete location data for trips that have ended
+      const { data, error } = await supabase
+        .from('trip_locations')
+        .delete()
+        .lt('timestamp', cutoffTime.toISOString())
+        .in('trip_id',
+          supabase
+            .from('trips')
+            .select('trip_id')
+            .eq('status', 'ended')
+        )
+        .select('location_id, trip_id, timestamp');
+
+      if (error) {
+        throw error;
       }
-    } catch (err) {
-      console.error('Cleanup scan failed:', err.message || err);
-    }
-  };
 
-  // Run periodically
-  setInterval(run, CLEANUP_INTERVAL_MS);
-  // Also run once at startup (after small delay to let server boot)
-  setTimeout(run, 5_000);
+      const deletedCount = data ? data.length : 0;
+      console.log(`Cleaned up ${deletedCount} old location records from ended trips`);
+
+      return {
+        success: true,
+        deletedCount,
+        cutoffTime: cutoffTime.toISOString()
+      };
+    } catch (error) {
+      console.error('Cleanup old locations error:', error);
+      return {
+        success: false,
+        error: 'Failed to cleanup old locations'
+      };
+    }
+  }
+
+  /**
+   * Get location count for monitoring
+   * @returns {Promise<Object>} Location count data
+   */
+  static async getLocationCount() {
+    try {
+      const { count, error } = await supabase
+        .from('trip_locations')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        count: count || 0
+      };
+    } catch (error) {
+      console.error('Get location count error:', error);
+      return {
+        success: false,
+        error: 'Failed to get location count'
+      };
+    }
+  }
+
+  /**
+   * Clean up location data for a specific ended trip
+   * @param {string} tripId - Trip ID to clean up
+   * @returns {Promise<Object>} Cleanup result
+   */
+  static async cleanupTripLocations(tripId) {
+    try {
+      console.log(`Cleaning up location data for ended trip: ${tripId}`);
+
+      const { data, error } = await supabase
+        .from('trip_locations')
+        .delete()
+        .eq('trip_id', tripId)
+        .select('location_id, trip_id, timestamp');
+
+      if (error) {
+        throw error;
+      }
+
+      const deletedCount = data ? data.length : 0;
+      console.log(`Cleaned up ${deletedCount} location records for trip ${tripId}`);
+
+      return {
+        success: true,
+        deletedCount,
+        tripId
+      };
+    } catch (error) {
+      console.error('Cleanup trip locations error:', error);
+      return {
+        success: false,
+        error: 'Failed to cleanup trip locations'
+      };
+    }
+  }
+
+  /**
+   * Get oldest location timestamp
+   * @returns {Promise<Object>} Oldest location data
+   */
+  static async getOldestLocation() {
+    try {
+      const { data, error } = await supabase
+        .from('trip_locations')
+        .select('timestamp')
+        .order('timestamp', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw error;
+      }
+
+      return {
+        success: true,
+        data: data || null
+      };
+    } catch (error) {
+      console.error('Get oldest location error:', error);
+      return {
+        success: false,
+        error: 'Failed to get oldest location'
+      };
+    }
+  }
 }
 
+/**
+ * Start the background cleanup job
+ * Runs every hour to clean up old location data from ended trips only
+ */
+export function startCleanupJob() {
+  console.log('🧹 Starting location cleanup job...');
+
+  // Run cleanup every hour (3600000 ms)
+  setInterval(async () => {
+    try {
+      const result = await CleanupService.cleanupOldLocations(24); // Clean up data from ended trips older than 24 hours
+
+      if (result.success && result.deletedCount > 0) {
+        console.log(`🧹 Cleaned up ${result.deletedCount} old location records from ended trips`);
+      }
+
+      // Optional: Log current location count for monitoring
+      const countResult = await CleanupService.getLocationCount();
+      if (countResult.success) {
+        console.log(`📍 Current location records in database: ${countResult.count}`);
+      }
+    } catch (error) {
+      console.error('❌ Cleanup job error:', error);
+    }
+  }, 3600000); // 1 hour
+
+  console.log('✅ Location cleanup job started (runs every hour, only cleans ended trips)');
+}

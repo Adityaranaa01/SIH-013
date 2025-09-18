@@ -12,13 +12,17 @@ export const useSocket = () => {
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
-      console.log("Connected to backend");
+      console.log("✅ Connected to backend WebSocket");
       setIsConnected(true);
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Disconnected from backend");
+      console.log("❌ Disconnected from backend WebSocket");
       setIsConnected(false);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("❌ WebSocket connection error:", error);
     });
 
     return () => {

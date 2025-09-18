@@ -5,7 +5,7 @@ class GeoTracker {
   constructor() {
     this.watchId = null;
     this.intervalId = null;
-    this.updateInterval = 5000; // 5 seconds in milliseconds
+    this.updateInterval = 2000; // 2 seconds in milliseconds
     this.isTracking = false;
     this.tripData = null;
     this.onLocationUpdate = null;
@@ -45,7 +45,7 @@ class GeoTracker {
     // Use watchPosition for continuous tracking with high accuracy
     const options = {
       enableHighAccuracy: true, // Force high accuracy mode
-      timeout: 30000, // Wait up to 30 seconds for a position
+      timeout: 10000, // Wait up to 10 seconds for a position
       maximumAge: 60000 // Allow cached positions up to 1 minute old
     };
 
@@ -69,7 +69,7 @@ class GeoTracker {
           this.getCurrentPosition();
         }
       }
-    }, 5000); // Check every 5 seconds
+    }, 2000); // Check every 2 seconds
 
     return true;
   }
@@ -107,7 +107,7 @@ class GeoTracker {
 
     const options = {
       enableHighAccuracy: true, // Force high accuracy
-      timeout: 30000, // Wait up to 30 seconds
+      timeout: 10000, // Wait up to 10 seconds
       maximumAge: 60000 // Allow cached positions up to 1 minute old
     };
 

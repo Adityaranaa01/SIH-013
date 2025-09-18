@@ -13,13 +13,14 @@ import tripRoutes from './routes/trips.js';
 import locationRoutes from './routes/locations.js';
 import adminRoutes from './routes/admin.js';
 
+// Import services
+import { CleanupService, startCleanupJob } from './services/cleanupService.js';
+
 // Import middleware
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 // Import database
 import { testConnection } from './config/database.js';
-// Background cleanup job
-import { startCleanupJob } from './services/cleanupService.js';
 
 // Load environment variables
 dotenv.config();
@@ -120,10 +121,32 @@ io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   // Driver location update
-  socket.on('location-update', (data) => {
-    console.log('Location update received:', data);
+  socket.on('location-update', async (data) => {
+    console.log('📍 Location update received:', data);
+
+    try {
+      // Store location in database
+      const { LocationService } = await import('./services/locationService.js');
+      const saveResult = await LocationService.saveLocation({
+        tripId: data.tripId,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        timestamp: data.timestamp || new Date().toISOString()
+      });
+
+      if (saveResult.success) {
+        console.log('✅ Location saved to database:', saveResult.data);
+      } else {
+        console.error('❌ Failed to save location:', saveResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Error saving location:', error);
+    }
+
     // Broadcast to all connected users
+    console.log('📡 Broadcasting to', io.engine.clientsCount, 'connected clients');
     io.emit('bus-location-update', data);
+    console.log('📡 Broadcast sent:', data);
   });
 
   // Driver trip status update

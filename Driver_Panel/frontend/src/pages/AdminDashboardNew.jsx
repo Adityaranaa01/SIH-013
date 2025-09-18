@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '../components/AdminLayout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
@@ -24,6 +24,7 @@ import {
     Edit,
     Trash2
 } from 'lucide-react';
+import io from 'socket.io-client';
 
 const AdminDashboardNew = () => {
     const navigate = useNavigate();
@@ -35,8 +36,10 @@ const AdminDashboardNew = () => {
     const [drivers, setDrivers] = useState([]);
     const [buses, setBuses] = useState([]);
     const [activeTrips, setActiveTrips] = useState([]);
+    const [tripLocations, setTripLocations] = useState({}); // Real-time location data for each trip
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const socketRef = useRef(null);
 
     // Modal states
     const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
@@ -61,6 +64,19 @@ const AdminDashboardNew = () => {
     useEffect(() => {
         checkAuth();
         loadDashboardData();
+        setupWebSocket();
+
+        // Set up periodic refresh for dashboard data (every 30 seconds)
+        const refreshInterval = setInterval(() => {
+            loadDashboardData();
+        }, 30000);
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+            clearInterval(refreshInterval);
+        };
     }, []);
 
     const checkAuth = () => {
@@ -71,6 +87,48 @@ const AdminDashboardNew = () => {
         } else {
             setCurrentAdmin(JSON.parse(adminData));
         }
+    };
+
+    const setupWebSocket = () => {
+        const socket = io('http://localhost:5000');
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('Admin dashboard connected to WebSocket');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Admin dashboard disconnected from WebSocket');
+        });
+
+        // Listen for real-time bus location updates
+        socket.on('bus-location-update', (data) => {
+            console.log('📍 Admin received bus-location-update:', data);
+            updateTripLocation(data);
+        });
+
+        // Listen for location updates (alternative event)
+        socket.on('location-update', (data) => {
+            console.log('📍 Admin received location-update:', data);
+            updateTripLocation(data);
+        });
+    };
+
+    const updateTripLocation = (locationData) => {
+        const tripId = locationData.tripId || locationData.busNumber;
+        if (!tripId) return;
+
+        const newLocation = {
+            lat: locationData.latitude,
+            lng: locationData.longitude,
+            timestamp: locationData.timestamp,
+            accuracy: locationData.accuracy
+        };
+
+        setTripLocations(prev => ({
+            ...prev,
+            [tripId]: newLocation
+        }));
     };
 
     const loadDashboardData = async () => {
@@ -718,7 +776,7 @@ const AdminDashboardNew = () => {
                                             Track Live
                                         </Button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                                         <div>
                                             <p className="text-gray-600 dark:text-gray-400">Driver</p>
                                             <p className="font-medium">{trip.drivers?.name || 'Unknown'}</p>
@@ -730,6 +788,21 @@ const AdminDashboardNew = () => {
                                         <div>
                                             <p className="text-gray-600 dark:text-gray-400">Route</p>
                                             <p className="font-medium">{trip.drivers?.assigned_route || 'Unassigned'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-600 dark:text-gray-400">Current Location</p>
+                                            {tripLocations[trip.trip_id] ? (
+                                                <div>
+                                                    <p className="font-mono text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded">
+                                                        {tripLocations[trip.trip_id].lat.toFixed(4)}, {tripLocations[trip.trip_id].lng.toFixed(4)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Updated: {new Date(tripLocations[trip.trip_id].timestamp).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-500 text-xs">Getting location...</p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -828,6 +901,7 @@ const AdminDashboardNew = () => {
                 isOpen={isLiveTrackingModalOpen}
                 onClose={() => setIsLiveTrackingModalOpen(false)}
                 trip={trackingTrip}
+                realTimeLocation={trackingTrip ? tripLocations[trackingTrip.trip_id] : null}
             />
 
             {/* Bus Modal */}
