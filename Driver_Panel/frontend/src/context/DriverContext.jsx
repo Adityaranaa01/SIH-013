@@ -18,11 +18,10 @@ export const DriverProvider = ({ children }) => {
     isAuthenticated: false
   });
 
-  // Load driver data from localStorage on component mount
   useEffect(() => {
     const savedDriverId = localStorage.getItem('driver_id');
     const savedBusNumber = localStorage.getItem('bus_number');
-    
+
     if (savedDriverId && savedBusNumber) {
       setDriver({
         driverId: savedDriverId,
@@ -38,7 +37,7 @@ export const DriverProvider = ({ children }) => {
       busNumber,
       isAuthenticated: true
     };
-    
+
     setDriver(driverData);
     localStorage.setItem('driver_id', driverId);
     localStorage.setItem('bus_number', busNumber);
@@ -50,7 +49,6 @@ export const DriverProvider = ({ children }) => {
         await authAPI.logout(driver.driverId, driver.busNumber);
       }
     } catch (e) {
-      // Ignore API errors on logout; still clear local state
       console.warn('Logout API failed or backend unreachable; clearing local session');
     } finally {
       setDriver({ driverId: null, busNumber: null, isAuthenticated: false });

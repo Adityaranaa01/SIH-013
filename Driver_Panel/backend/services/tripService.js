@@ -1,16 +1,7 @@
-// backend/services/tripService.js
 import { supabase } from '../config/database.js';
 
-/**
- * Trip management service
- */
 export class TripService {
 
-  /**
-   * Check if driver has an active trip
-   * @param {string} driverId - Driver ID
-   * @returns {Promise<Object>} Active trip data or null
-   */
   static async getActiveTrip(driverId) {
     try {
       const { data, error } = await supabase
@@ -20,7 +11,7 @@ export class TripService {
         .eq('status', 'active')
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
@@ -43,15 +34,8 @@ export class TripService {
     }
   }
 
-  /**
-   * Start a new trip
-   * @param {string} driverId - Driver ID
-   * @param {string} busNumber - Bus number
-   * @returns {Promise<Object>} New trip data or error
-   */
   static async startTrip(driverId, busNumber) {
     try {
-      // First check if there's already an active trip
       const activeTrip = await this.getActiveTrip(driverId);
       if (activeTrip.success && activeTrip.data) {
         return {
@@ -75,7 +59,6 @@ export class TripService {
         throw error;
       }
 
-      // Update driver and bus statuses
       await supabase.from('drivers').update({ status: 'on_trip', current_bus: busNumber }).eq('driver_id', driverId);
       await supabase.from('buses').update({ status: 'running', current_driver: driverId }).eq('bus_number', busNumber);
 
@@ -98,11 +81,6 @@ export class TripService {
     }
   }
 
-  /**
-   * End an active trip
-   * @param {string} tripId - Trip ID
-   * @returns {Promise<Object>} Updated trip data or error
-   */
   static async endTrip(tripId) {
     try {
       const { data, error } = await supabase
@@ -119,7 +97,6 @@ export class TripService {
         throw error;
       }
 
-      // Update driver and bus statuses after trip ends
       if (data) {
         const driverId = data.driver_id;
         const busNumber = data.bus_number;
@@ -127,13 +104,11 @@ export class TripService {
         await supabase.from('buses').update({ status: 'assigned', current_driver: driverId }).eq('bus_number', busNumber);
       }
 
-      // Clean up location data for the ended trip
       try {
         const { CleanupService } = await import('./cleanupService.js');
         await CleanupService.cleanupTripLocations(tripId);
       } catch (cleanupError) {
         console.warn('Failed to cleanup location data for ended trip:', cleanupError);
-        // Don't fail the trip ending if cleanup fails
       }
 
       return {
@@ -156,11 +131,6 @@ export class TripService {
     }
   }
 
-  /**
-   * Get trip details by ID
-   * @param {string} tripId - Trip ID
-   * @returns {Promise<Object>} Trip data or error
-   */
   static async getTripById(tripId) {
     try {
       const { data, error } = await supabase

@@ -1,7 +1,7 @@
 {
-  "name": "smarttransit-backend",
+  "name": "safarsaathi-backend",
   "version": "1.0.0",
-  "description": "Backend server for SmartTransit real-time bus tracking",
+  "description": "Backend server for SafarSaathi real-time bus tracking",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -27,6 +27,6 @@
     "websocket",
     "transportation"
   ],
-  "author": "SmartTransit Team",
+  "author": "SafarSaathi Team",
   "license": "MIT"
 }

@@ -59,7 +59,6 @@ export function Dashboard({ onBack }: DashboardProps) {
   const [selectedBus, setSelectedBus] = useState<BusData | null>(null);
   const [showMap, setShowMap] = useState(false);
 
-  // Use real-time bus data
   const { buses: realTimeBuses, isLoading, isConnected } = useRealTimeBusData();
 
   const filteredBuses = realTimeBuses.filter((bus) => {
@@ -107,7 +106,6 @@ export function Dashboard({ onBack }: DashboardProps) {
       default:
         return (
           <div className="space-y-6">
-            {/* Search and Filters */}
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -142,7 +140,6 @@ export function Dashboard({ onBack }: DashboardProps) {
               </Button>
             </div>
 
-            {/* Loading State */}
             {isLoading && (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -150,7 +147,6 @@ export function Dashboard({ onBack }: DashboardProps) {
               </div>
             )}
 
-            {/* Bus Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredBuses.map((bus) => {
                 const busDetails = getBusDetails(bus.id);
@@ -249,7 +245,6 @@ export function Dashboard({ onBack }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-card/30 backdrop-blur-md">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
@@ -261,7 +256,7 @@ export function Dashboard({ onBack }: DashboardProps) {
                 <Bus className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">SmartTransit</h1>
+                <h1 className="text-xl font-bold">SafarSaathi</h1>
                 <p className="text-sm text-muted-foreground">
                   Passenger Dashboard
                 </p>
@@ -286,7 +281,6 @@ export function Dashboard({ onBack }: DashboardProps) {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
         <div className="px-4 pb-4">
           <nav className="flex space-x-1 bg-muted/30 p-1 rounded-lg">
             {[
@@ -316,7 +310,6 @@ export function Dashboard({ onBack }: DashboardProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">{renderTabContent()}</main>
     </div>
   );

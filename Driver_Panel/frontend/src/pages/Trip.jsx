@@ -1,4 +1,3 @@
-// src/pages/Trip.jsx
 import React, { useState, useEffect } from 'react';
 import { useDriver } from '../context/DriverContext';
 import { geoTracker } from '../utils/geo';
@@ -37,17 +36,14 @@ const Trip = () => {
     return () => clearInterval(interval);
   }, [isActive]);
 
-  // Initialize WebSocket connection
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      // Connected to backend
     });
 
     newSocket.on('disconnect', () => {
-      // Disconnected from backend
     });
 
     return () => {
@@ -123,7 +119,6 @@ const Trip = () => {
     if (locationData.accuracy != null) setAccuracy(Math.round(locationData.accuracy));
     setLocationStatus(`GPS tracking active - Update #${updateCount + 1}`);
 
-    // Determine GPS mode based on accuracy
     if (locationData.accuracy < 100) {
       setGpsMode('high-accuracy');
     } else if (locationData.accuracy < 1000) {
@@ -136,7 +131,6 @@ const Trip = () => {
       setGpsMode('very-poor');
     }
 
-    // Send location update via WebSocket
     if (socket && tripId) {
       socket.emit('location-update', {
         tripId,
@@ -171,7 +165,6 @@ const Trip = () => {
   return (
     <div className="min-h-screen flex flex-col p-4">
       <div className="flex-1 max-w-4xl mx-auto w-full space-y-6">
-        {/* Status Card */}
         <Card className="bg-card">
           <CardContent>
             <div className="flex items-center justify-between">
@@ -188,7 +181,6 @@ const Trip = () => {
           </CardContent>
         </Card>
 
-        {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
           <Card className="bg-card">
             <CardHeader>

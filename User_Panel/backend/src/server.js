@@ -15,29 +15,23 @@ const io = socketIo(server, {
     }
 });
 
-// Middleware
 app.use(helmet());
 app.use(cors({
     origin: [process.env.FRONTEND_URL, process.env.DRIVER_PANEL_URL]
 }));
 app.use(express.json());
 
-// Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100 // limit each IP to 100 requests per windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100
 });
 app.use(limiter);
 
-// Store active connections
 const activeDrivers = new Map();
 const activeUsers = new Map();
-
-// Socket.io connection handling
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
 
-    // Driver registration
     socket.on('driver-register', (data) => {
         const { driverId, busId, route } = data;
         activeDrivers.set(socket.id, {
@@ -52,7 +46,6 @@ io.on('connection', (socket) => {
         console.log(`Driver registered: ${driverId} (Bus: ${busId})`);
         socket.emit('driver-registered', { success: true, driverId, busId });
 
-        // Notify all users about new active bus
         io.emit('bus-status-update', {
             busId,
             driverId,
@@ -62,7 +55,6 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Driver location update
     socket.on('location-update', (data) => {
         const driver = activeDrivers.get(socket.id);
         if (driver) {
@@ -73,7 +65,6 @@ io.on('connection', (socket) => {
                 accuracy: data.accuracy
             };
 
-            // Broadcast location to all connected users
             io.emit('bus-location-update', {
                 busId: driver.busId,
                 driverId: driver.driverId,
@@ -85,14 +76,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    // User subscription to specific bus
     socket.on('subscribe-to-bus', (busId) => {
         activeUsers.set(socket.id, { busId, socketId: socket.id });
         socket.join(`bus-${busId}`);
         console.log(`User subscribed to bus: ${busId}`);
     });
 
-    // Driver trip control
     socket.on('start-trip', (data) => {
         const driver = activeDrivers.get(socket.id);
         if (driver) {
@@ -118,7 +107,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle disconnection
     socket.on('disconnect', () => {
         const driver = activeDrivers.get(socket.id);
         const user = activeUsers.get(socket.id);
@@ -127,7 +115,6 @@ io.on('connection', (socket) => {
             console.log(`Driver disconnected: ${driver.driverId}`);
             activeDrivers.delete(socket.id);
 
-            // Notify users that bus is offline
             io.emit('bus-status-update', {
                 busId: driver.busId,
                 driverId: driver.driverId,
@@ -143,7 +130,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// API Routes
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -185,6 +171,6 @@ app.get('/api/bus/:busId', (req, res) => {
 
 const PORT = process.env.PORT || 5173;
 server.listen(PORT, () => {
-    console.log(`🚌 SmartTransit Backend running on port ${PORT}`);
+    console.log(`🚌 SafarSaathi Backend running on port ${PORT}`);
     console.log(`📡 WebSocket server ready for real-time communication`);
 });

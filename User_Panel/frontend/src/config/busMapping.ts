@@ -1,6 +1,4 @@
-// Bus ID to Route Mapping Configuration
 export const busRouteMapping = {
-  // Route 500A buses
   "BUS-001": {
     busId: "BUS-001",
     routeId: "500A",
@@ -11,7 +9,6 @@ export const busRouteMapping = {
     color: "#FF6B6B",
   },
 
-  // Route 700A buses
   "BUS-002": {
     busId: "BUS-002",
     routeId: "700A",
@@ -22,7 +19,6 @@ export const busRouteMapping = {
     color: "#45B7D1",
   },
 
-  // Route 600B buses
   "BUS-003": {
     busId: "BUS-003",
     routeId: "600B",
@@ -34,19 +30,16 @@ export const busRouteMapping = {
   },
 };
 
-// Helper function to get bus details by ID
 export const getBusDetails = (busId: string) => {
   return busRouteMapping[busId as keyof typeof busRouteMapping] || null;
 };
 
-// Helper function to get all buses for a specific route
 export const getBusesForRoute = (routeId: string) => {
   return Object.values(busRouteMapping).filter(
     (bus) => bus.routeId === routeId
   );
 };
 
-// Helper function to search buses by partial ID or route
 export const searchBuses = (query: string) => {
   const lowerQuery = query.toLowerCase();
   return Object.values(busRouteMapping).filter(

@@ -14,7 +14,6 @@ import { ToastProvider } from './components/ui/Toast';
 import { ArrowLeft, Bus, Shield } from 'lucide-react';
 import { Button } from './components/ui/Button';
 
-// Protected Route component
 const ProtectedRoute = ({ children }) => {
   const { driver } = useDriver();
   return driver.isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -26,7 +25,6 @@ function HeaderBar() {
   const canGoBack = location.pathname !== '/login' && !location.pathname.startsWith('/admin');
   const isAdminPage = location.pathname.startsWith('/admin');
 
-  // Don't render header for admin pages since AdminLayout has its own header
   if (isAdminPage) {
     return null;
   }
@@ -69,13 +67,11 @@ function HeaderBar() {
   );
 }
 
-// Admin Protected Route component
 const AdminProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
   return token ? children : <Navigate to="/admin/login" replace />;
 };
 
-// Dynamic title component
 const DynamicTitle = () => {
   const location = useLocation();
 
@@ -100,7 +96,6 @@ const DynamicTitle = () => {
   return null;
 };
 
-// App content with routing
 const AppContent = () => {
   return (
     <Router>
@@ -146,7 +141,7 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="smarttransit-theme">
+    <ThemeProvider defaultTheme="light" storageKey="safarsaathi-theme">
       <ToastProvider>
         <DriverProvider>
           <AppContent />

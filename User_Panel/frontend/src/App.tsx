@@ -14,13 +14,11 @@ import "leaflet/dist/leaflet.css";
 
 type AppState = "landing" | "user" | "driver";
 
-// Main App component with routing
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [appState, setAppState] = useState<AppState>("landing");
 
-  // Determine app state based on current URL
   useEffect(() => {
     const path = location.pathname;
     if (path === "/user" || path === "/dashboard") {
@@ -32,7 +30,6 @@ function AppContent() {
     }
   }, [location.pathname]);
 
-  // Update URL when app state changes
   const handleStateChange = (newState: AppState) => {
     setAppState(newState);
     if (newState === "user") {
@@ -73,11 +70,10 @@ function AppContent() {
   );
 }
 
-// Main App component with Router and Theme Provider
 export default function App() {
   return (
     <Router>
-      <ThemeProvider defaultTheme="light" storageKey="smarttransit-theme">
+      <ThemeProvider defaultTheme="light" storageKey="safarsaathi-theme">
         <AppContent />
       </ThemeProvider>
     </Router>

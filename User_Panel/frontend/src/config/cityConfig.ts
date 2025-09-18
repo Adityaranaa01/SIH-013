@@ -1,4 +1,3 @@
-// City configuration for Bengaluru
 export const cityConfig = {
   name: "Bengaluru",
   state: "Karnataka",

@@ -121,7 +121,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">Email</p>
-                  <p className="text-gray-600">team.smarttransit@gmail.com</p>
+                  <p className="text-gray-600">team.safarsaathi@gmail.com</p>
                 </div>
               </div>
 

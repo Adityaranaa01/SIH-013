@@ -1,8 +1,8 @@
 {
-  "name": "smarttransit-hackathon-2024",
+  "name": "safarsaathi-hackathon-2024",
   "private": true,
   "version": "1.0.0",
-  "description": "Real-time Public Transport Tracking System for Small Cities - Smart India Hackathon 2024",
+  "description": "Real-time Public Transport Tracking System for Small Cities - SafarSaathi 2024",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -43,11 +43,11 @@
     "tailwind"
   ],
   "authors": [
-    "Team SmartTransit - IIT Mumbai"
+    "Team SafarSaathi - IIT Mumbai"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/team-smarttransit/hackathon-2024"
+    "url": "https://github.com/team-safarsaathi/hackathon-2024"
   }
 }

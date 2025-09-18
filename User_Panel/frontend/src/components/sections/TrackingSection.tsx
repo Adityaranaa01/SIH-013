@@ -118,7 +118,6 @@ export function TrackingSection({ onSectionChange }: TrackingSectionProps) {
         </CardContent>
       </Card>
 
-      {/* Live Vehicles */}
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl text-gray-900">Live Vehicles</h2>
@@ -178,7 +177,6 @@ export function TrackingSection({ onSectionChange }: TrackingSectionProps) {
         </div>
       </section>
 
-      {/* Quick Actions */}
       <section className="bg-blue-50 p-6 rounded-lg">
         <div className="text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">Need Help?</h3>

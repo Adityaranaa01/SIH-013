@@ -1,4 +1,3 @@
-// src/components/MapView.tsx
 import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
@@ -18,7 +17,6 @@ import { ArrowLeft, MapPin, Clock, Navigation } from "lucide-react";
 import { Crosshair } from "lucide-react";
 import cityConfig from "../config/cityConfig";
 
-// Fix for default markers (uses public/marker-icon.png and public/marker-shadow.png)
 const defaultIcon = L.icon({
   iconUrl: "/marker-icon.png",
   shadowUrl: "/marker-shadow.png",
@@ -60,7 +58,6 @@ type LatLngWithAccuracy = {
   accuracy?: number;
 };
 
-// Calculate distance between two points in meters using the Haversine formula
 function getDistanceFromLatLonInMeters(
   lat1: number,
   lon1: number,
@@ -94,7 +91,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   >([]);
   const watchIdRef = useRef<number | null>(null);
 
-  // Update selectedBus when allBuses data changes (from WebSocket updates)
   useEffect(() => {
     const updatedBus = allBuses.find(
       (busItem) => busItem.id === selectedBus.id
@@ -102,7 +98,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     if (updatedBus) {
       setSelectedBus(updatedBus);
 
-      // Add to location history for path visualization
       const newLocation = {
         lat: updatedBus.currentLocation.lat,
         lng: updatedBus.currentLocation.lng,
@@ -110,7 +105,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       };
 
       setBusLocationHistory((prev) => {
-        // Only add if location has actually changed (not just a refresh)
         const lastLocation = prev[prev.length - 1];
         if (
           !lastLocation ||
@@ -124,7 +118,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     }
   }, [allBuses, selectedBus.id]);
 
-  // Clear location history when switching to a different bus
   useEffect(() => {
     setBusLocationHistory([]);
   }, [selectedBus.id]);
@@ -139,7 +132,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     console.log("Starting geolocation tracking...");
     setLocationStatus("Requesting location permission...");
 
-    // Check if we already have permission
     if (navigator.permissions) {
       navigator.permissions
         .query({ name: "geolocation" })
@@ -163,7 +155,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     let fallbackPosition: LatLngWithAccuracy | null = null;
     let geolocationTimeout: NodeJS.Timeout | null = null;
 
-    // Set a timeout to handle cases where geolocation takes too long
     geolocationTimeout = setTimeout(() => {
       if (!userPos) {
         console.log(
@@ -171,7 +162,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         );
         setLocationStatus("Trying fallback location method...");
 
-        // Try with less strict options as fallback
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             console.log(
@@ -204,7 +194,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       }
     }, 15000); // 15 second timeout
 
-    // First get a quick initial position with high accuracy
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         console.log("Initial position accuracy:", pos.coords.accuracy, "m");
@@ -213,7 +202,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           geolocationTimeout = null;
         }
 
-        // Accept any initial position to get something on the map
         console.log("=== GPS DIAGNOSTICS ===");
         console.log("Position accuracy:", pos.coords.accuracy, "m");
         console.log(
@@ -227,7 +215,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         console.log("Heading:", pos.coords.heading);
         console.log("Speed:", pos.coords.speed);
 
-        // Detect WiFi positioning (very poor accuracy, no altitude/speed/heading)
         const isWifiPositioning =
           pos.coords.accuracy > 10000 &&
           pos.coords.altitude === null &&
@@ -305,7 +292,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       }
     );
 
-    // Then start watching with high accuracy
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         positionUpdateCount++;
@@ -317,7 +303,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         console.log("Heading:", pos.coords.heading);
         console.log("Best accuracy so far:", bestAccuracy, "m");
 
-        // Detect WiFi positioning in updates too
         const isWifiPositioning =
           pos.coords.accuracy > 10000 &&
           pos.coords.altitude === null &&
@@ -329,17 +314,14 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         }
         console.log("=====================================");
 
-        // More lenient accuracy filtering - accept positions with accuracy up to 100m initially
         const MAX_ACCEPTABLE_ACCURACY = 100; // meters - more lenient threshold for initial fix
         const IDEAL_ACCURACY = 10; // meters - ideal accuracy we want
         const POOR_ACCURACY_THRESHOLD = 1000; // meters - very poor accuracy, but still usable
 
-        // Always store the best accuracy we've seen
         if (pos.coords.accuracy < bestAccuracy) {
           bestAccuracy = pos.coords.accuracy;
         }
 
-        // If this is a very good position, always accept it
         if (pos.coords.accuracy <= IDEAL_ACCURACY) {
           console.log(
             "Accepting high accuracy position:",
@@ -358,7 +340,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           return;
         }
 
-        // For the first few updates, accept any position to get something on the map
         if (positionUpdateCount <= 3) {
           console.log(
             "Accepting initial position (update #" + positionUpdateCount + "):",
@@ -379,10 +360,8 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           return;
         }
 
-        // For positions with moderate accuracy, be more selective
         if (pos.coords.accuracy <= MAX_ACCEPTABLE_ACCURACY) {
           setUserPos((prevPos) => {
-            // If we don't have a position yet, accept this one
             if (!prevPos) {
               console.log(
                 "Setting initial position with accuracy:",
@@ -400,7 +379,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               };
             }
 
-            // If this position is significantly better, accept it
             if (pos.coords.accuracy < prevPos.accuracy * 0.7) {
               console.log(
                 "Updating to better position. New accuracy:",
@@ -422,7 +400,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               };
             }
 
-            // If current position is very poor (>1000m) and new one is better, accept it
             if (
               prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
               pos.coords.accuracy < prevPos.accuracy
@@ -447,7 +424,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               };
             }
 
-            // If position has moved significantly (more than 10m), accept it
             const distance = getDistanceFromLatLonInMeters(
               prevPos.lat,
               prevPos.lng,
@@ -486,7 +462,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             MAX_ACCEPTABLE_ACCURACY,
             "m)"
           );
-          // If we have a position but it's very poor, show that we're still trying to improve
           if (userPos && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
             setLocationStatus(
               `Location found but accuracy is poor (±${Math.round(
@@ -496,19 +471,16 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           }
         }
 
-        // After 10 position updates, if accuracy is still very poor, try restarting with different settings
         if (positionUpdateCount >= 10 && userPos && userPos.accuracy > 10000) {
           console.log(
             "Accuracy still very poor after 10 updates, trying GPS-only mode"
           );
           setLocationStatus("Trying GPS-only mode for better accuracy...");
 
-          // Clear current watch and restart with GPS-only settings
           if (watchIdRef.current !== null) {
             navigator.geolocation.clearWatch(watchIdRef.current);
           }
 
-          // Restart with more aggressive GPS settings
           const newWatchId = navigator.geolocation.watchPosition(
             (pos) => {
               console.log(
@@ -540,7 +512,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
           watchIdRef.current = newWatchId;
         }
 
-        // After 10 position updates, if we still don't have a good position, use fallback
         if (positionUpdateCount >= 10 && !userPos && fallbackPosition) {
           console.log("Using fallback position after 10 updates");
           setUserPos(fallbackPosition);
@@ -597,7 +568,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     };
   }, []);
 
-  // Default the legend to open on desktop and collapsed on small screens
   useEffect(() => {
     try {
       setLegendOpen(window.innerWidth > 420);
@@ -626,7 +596,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       console.log("No user position available yet");
       setLocationStatus("No location available yet. Please wait...");
 
-      // Try to get location again if it's not available
       if ("geolocation" in navigator) {
         console.log("Attempting to get location again...");
         setLocationStatus("Retrying location request...");
@@ -642,7 +611,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             setLocationStatus(
               `Location found! Accuracy: ±${Math.round(pos.coords.accuracy)}m`
             );
-            // Center the map after getting the position
             if (map) {
               map.setView([pos.coords.latitude, pos.coords.longitude], 15, {
                 animate: true,
@@ -668,22 +636,16 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     }
   };
 
-  // When the map container's size changes (responsive layout / window resize)
-  // Leaflet sometimes needs an explicit invalidateSize() call so tiles render.
   useEffect(() => {
     if (!map) return;
-    // Invalidate size once so Leaflet recalculates when the map mounts
     setTimeout(() => map.invalidateSize(), 0);
     const onResize = () => {
-      // small timeout to let the layout settle
       setTimeout(() => map.invalidateSize(), 50);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [map]);
 
-  // Helper to create an SVG pulsing icon as a data URL. Uses SMIL animations so it doesn't
-  // depend on external CSS being applied to Leaflet's divIcon.
   const createPulsingSvgIcon = (color = "#1976d2") => {
     const size = 40;
     const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>\n  <defs>\n    <radialGradient id='g' cx='50%' cy='50%' r='50%'>\n      <stop offset='0%' stop-color='${color}' stop-opacity='0.9'/>\n      <stop offset='100%' stop-color='${color}' stop-opacity='0.3'/>\n    </radialGradient>\n  </defs>\n  <g transform='translate(${
@@ -714,11 +676,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
       <div className="flex flex-col lg:flex-row min-h-[60vh] lg:h-[calc(100vh-120px)]">
         <div className="flex-1 lg:w-3/4 relative">
           <div className="p-4 h-full w-full">
-            {/*
-              Ensure the map container always has a non-zero explicit height on small screens.
-              Tailwind percentage heights rely on parent having a defined height; set min-heights
-              across breakpoints so the map is visible under 1024px.
-            */}
             <div
               className="map-wrap relative z-0 rounded-md overflow-visible"
               style={{
@@ -727,7 +684,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 clipPath: "inset(0 round 0.5rem)",
               }}
             >
-              {/* Using style height ensures Leaflet has a concrete pixel height to render into */}
               <MapContainer
                 center={selectedBusPosition}
                 zoom={13}
@@ -799,7 +755,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                     </Marker>
                   ))}
 
-                {/* Bus Movement Path */}
                 {busLocationHistory.length > 1 && (
                   <Polyline
                     positions={busLocationHistory.map((loc) => [
@@ -816,7 +771,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
                 {userPos && (
                   <>
-                    {/* Accuracy circle */}
                     <Circle
                       center={[userPos.lat, userPos.lng]}
                       radius={userPos.accuracy || 0}
@@ -827,7 +781,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                         weight: 1,
                       }}
                     />
-                    {/* Pulsing user marker implemented as an SVG data-url icon (SMIL animation) */}
                     <Marker
                       position={[userPos.lat, userPos.lng]}
                       icon={L.icon({
@@ -851,10 +804,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 )}
               </MapContainer>
 
-              {/* Floating overlays: legend, badges, center button */}
-              {/* Collapsible legend: show a mini toggle when collapsed, the full card when open */}
-              {/* mini toggle shown when closed */}
-              {/* Mini-toggle always rendered so we can animate its vertical position when the legend opens */}
               <button
                 aria-label={legendOpen ? "Close legend" : "Open legend"}
                 onClick={() => setLegendOpen((s) => !s)}
@@ -871,7 +820,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                   opacity: legendOpen ? 0 : 1,
                 }}
               >
-                {/* small legend icon (three lines + dot) */}
                 <svg
                   width="16"
                   height="16"
@@ -916,7 +864,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 </svg>
               </button>
 
-              {/* Animated legend card: always present but toggles open/closed classes */}
               <Card
                 className={`absolute bg-card/90 backdrop-blur-sm border-border/50 map-legend z-[9999] pointer-events-auto ${
                   legendOpen ? "map-legend-open" : "map-legend-closed"
@@ -989,7 +936,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 Tracking
               </Badge>
 
-              {/* Location Status Badge */}
               <Badge
                 variant="outline"
                 className="absolute top-16 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto text-xs"
@@ -997,7 +943,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 {locationStatus}
               </Badge>
 
-              {/* Manual Location Request Button - only show if no location */}
               {!userPos && (
                 <Badge
                   variant="outline"
@@ -1046,7 +991,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 </Badge>
               )}
 
-              {/* WiFi Positioning Warning - show if accuracy is very poor */}
               {userPos && userPos.accuracy > 10000 && (
                 <Badge
                   variant="outline"
@@ -1063,7 +1007,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 </Badge>
               )}
 
-              {/* Force GPS Button - show if location exists but accuracy is poor */}
               {userPos &&
                 userPos.accuracy > 1000 &&
                 userPos.accuracy <= 10000 && (
@@ -1076,12 +1019,10 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                         console.log("Force GPS clicked");
                         setLocationStatus("Forcing GPS mode...");
 
-                        // Clear current watch
                         if (watchIdRef.current !== null) {
                           navigator.geolocation.clearWatch(watchIdRef.current);
                         }
 
-                        // Force GPS with very aggressive settings
                         const newWatchId = navigator.geolocation.watchPosition(
                           (pos) => {
                             console.log(

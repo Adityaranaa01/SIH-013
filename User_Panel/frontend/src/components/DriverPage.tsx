@@ -1,11 +1,25 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import { ThemeToggle } from "./ThemeToggle";
-import { ArrowLeft, MapPin, Clock, Wifi, WifiOff, Bus, Activity } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  Wifi,
+  WifiOff,
+  Bus,
+  Activity,
+} from "lucide-react";
 
 interface DriverPageProps {
   onBack: () => void;
@@ -39,30 +53,30 @@ export function DriverPage({ onBack }: DriverPageProps) {
     }
 
     try {
-      // Request location permission
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          });
+        }
+      );
 
       setLocationData({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         timestamp: Date.now(),
-        accuracy: position.coords.accuracy
+        accuracy: position.coords.accuracy,
       });
 
-      // Start watching position
       const id = navigator.geolocation.watchPosition(
         (position) => {
           setLocationData({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             timestamp: Date.now(),
-            accuracy: position.coords.accuracy
+            accuracy: position.coords.accuracy,
           });
         },
         (error) => {
@@ -72,7 +86,7 @@ export function DriverPage({ onBack }: DriverPageProps) {
         {
           enableHighAccuracy: true,
           timeout: 5000,
-          maximumAge: 0
+          maximumAge: 0,
         }
       );
 
@@ -81,7 +95,9 @@ export function DriverPage({ onBack }: DriverPageProps) {
       setIsRegistered(true);
       setError("");
     } catch (err) {
-      setError("Failed to access location. Please enable location permissions.");
+      setError(
+        "Failed to access location. Please enable location permissions."
+      );
     }
   };
 
@@ -112,7 +128,6 @@ export function DriverPage({ onBack }: DriverPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
       <header className="flex justify-between items-center p-6 border-b border-border/50 bg-card/30 backdrop-blur-sm">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" onClick={onBack}>
@@ -124,7 +139,9 @@ export function DriverPage({ onBack }: DriverPageProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold">Driver Dashboard</h1>
-              <p className="text-sm text-muted-foreground">GPS Location Tracking</p>
+              <p className="text-sm text-muted-foreground">
+                GPS Location Tracking
+              </p>
             </div>
           </div>
         </div>
@@ -133,7 +150,6 @@ export function DriverPage({ onBack }: DriverPageProps) {
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         {!isRegistered ? (
-          /* Registration Form */
           <Card className="max-w-md mx-auto bg-card/50 backdrop-blur-sm border-border/50">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -167,8 +183,8 @@ export function DriverPage({ onBack }: DriverPageProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 </div>
               )}
-              <Button 
-                onClick={handleStartTracking} 
+              <Button
+                onClick={handleStartTracking}
                 className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                 size="lg"
               >
@@ -189,10 +205,19 @@ export function DriverPage({ onBack }: DriverPageProps) {
                       <Activity className="w-5 h-5 text-green-500" />
                       Tracking Active
                     </CardTitle>
-                    <CardDescription>Broadcasting location every 5 seconds</CardDescription>
+                    <CardDescription>
+                      Broadcasting location every 5 seconds
+                    </CardDescription>
                   </div>
-                  <Badge variant={isTracking ? "default" : "secondary"} className="gap-1">
-                    {isTracking ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                  <Badge
+                    variant={isTracking ? "default" : "secondary"}
+                    className="gap-1"
+                  >
+                    {isTracking ? (
+                      <Wifi className="w-3 h-3" />
+                    ) : (
+                      <WifiOff className="w-3 h-3" />
+                    )}
                     {isTracking ? "Online" : "Offline"}
                   </Badge>
                 </div>
@@ -235,24 +260,39 @@ export function DriverPage({ onBack }: DriverPageProps) {
                   {locationData ? (
                     <>
                       <div>
-                        <span className="text-muted-foreground text-sm">Coordinates:</span>
+                        <span className="text-muted-foreground text-sm">
+                          Coordinates:
+                        </span>
                         <p className="font-mono text-sm bg-muted/50 p-2 rounded mt-1">
-                          {formatCoordinates(locationData.latitude, locationData.longitude)}
+                          {formatCoordinates(
+                            locationData.latitude,
+                            locationData.longitude
+                          )}
                         </p>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Updated:</span>
-                        <span className="text-sm">{formatTime(locationData.timestamp)}</span>
+                        <span className="text-muted-foreground">
+                          Last Updated:
+                        </span>
+                        <span className="text-sm">
+                          {formatTime(locationData.timestamp)}
+                        </span>
                       </div>
                       {locationData.accuracy && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Accuracy:</span>
-                          <span className="text-sm">±{Math.round(locationData.accuracy)}m</span>
+                          <span className="text-muted-foreground">
+                            Accuracy:
+                          </span>
+                          <span className="text-sm">
+                            ±{Math.round(locationData.accuracy)}m
+                          </span>
                         </div>
                       )}
                     </>
                   ) : (
-                    <p className="text-muted-foreground text-sm">No location data available</p>
+                    <p className="text-muted-foreground text-sm">
+                      No location data available
+                    </p>
                   )}
                 </CardContent>
               </Card>

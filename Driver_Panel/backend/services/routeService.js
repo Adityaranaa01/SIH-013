@@ -1,15 +1,7 @@
-// backend/services/routeService.js
 import { supabase } from '../config/database.js';
 
-/**
- * Route management service
- */
 export class RouteService {
 
-    /**
-     * Get all routes
-     * @returns {Promise<Object>} Routes data or error
-     */
     static async getAllRoutes() {
         try {
             const { data, error } = await supabase
@@ -34,10 +26,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Get active routes only
-     * @returns {Promise<Object>} Active routes data or error
-     */
     static async getActiveRoutes() {
         try {
             const { data, error } = await supabase
@@ -63,11 +51,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Get route by ID
-     * @param {string} routeId - Route ID
-     * @returns {Promise<Object>} Route data or error
-     */
     static async getRouteById(routeId) {
         try {
             const { data, error } = await supabase
@@ -96,11 +79,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Create new route
-     * @param {Object} routeData - Route data
-     * @returns {Promise<Object>} Created route data or error
-     */
     static async createRoute(routeData) {
         try {
             const { data, error } = await supabase
@@ -126,12 +104,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Update route
-     * @param {string} routeId - Route ID
-     * @param {Object} updateData - Update data
-     * @returns {Promise<Object>} Updated route data or error
-     */
     static async updateRoute(routeId, updateData) {
         try {
             const { data, error } = await supabase
@@ -158,11 +130,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Delete route
-     * @param {string} routeId - Route ID
-     * @returns {Promise<Object>} Success or error
-     */
     static async deleteRoute(routeId) {
         try {
             const { error } = await supabase
@@ -187,11 +154,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Get route stops
-     * @param {string} routeId - Route ID
-     * @returns {Promise<Object>} Route stops data or error
-     */
     static async getRouteStops(routeId) {
         try {
             const { data, error } = await supabase
@@ -217,11 +179,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Add route stop
-     * @param {Object} stopData - Stop data
-     * @returns {Promise<Object>} Created stop data or error
-     */
     static async addRouteStop(stopData) {
         try {
             const { data, error } = await supabase
@@ -247,12 +204,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Update route stop
-     * @param {number} stopId - Stop ID
-     * @param {Object} updateData - Update data
-     * @returns {Promise<Object>} Updated stop data or error
-     */
     static async updateRouteStop(stopId, updateData) {
         try {
             const { data, error } = await supabase
@@ -279,11 +230,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Delete route stop
-     * @param {number} stopId - Stop ID
-     * @returns {Promise<Object>} Success or error
-     */
     static async deleteRouteStop(stopId) {
         try {
             const { error } = await supabase
@@ -308,10 +254,6 @@ export class RouteService {
         }
     }
 
-    /**
-     * Get routes with their stops
-     * @returns {Promise<Object>} Routes with stops data or error
-     */
     static async getRoutesWithStops() {
         try {
             const { data, error } = await supabase
@@ -333,7 +275,6 @@ export class RouteService {
                 throw error;
             }
 
-            // Sort stops by stop_order for each route
             const routesWithSortedStops = data.map(route => ({
                 ...route,
                 route_stops: route.route_stops.sort((a, b) => a.stop_order - b.stop_order)

@@ -1,4 +1,11 @@
-import { Home, Map, Navigation as NavigationIcon, Info, Mail, Menu } from "lucide-react";
+import {
+  Home,
+  Map,
+  Navigation as NavigationIcon,
+  Info,
+  Mail,
+  Menu,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
@@ -15,7 +22,10 @@ const navigationItems = [
   { id: "contact", label: "Contact", icon: Mail },
 ];
 
-export function Navigation({ currentSection, onSectionChange }: NavigationProps) {
+export function Navigation({
+  currentSection,
+  onSectionChange,
+}: NavigationProps) {
   const NavItems = () => (
     <>
       {navigationItems.map((item) => {
@@ -46,7 +56,9 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <NavigationIcon className="h-6 w-6 text-blue-600" />
-              <span className="text-xl font-medium text-gray-900">SmartTransit</span>
+              <span className="text-xl font-medium text-gray-900">
+                SafarSaathi
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <NavItems />
@@ -60,7 +72,9 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <NavigationIcon className="h-6 w-6 text-blue-600" />
-            <span className="text-lg font-medium text-gray-900">SmartTransit</span>
+            <span className="text-lg font-medium text-gray-900">
+              SafarSaathi
+            </span>
           </div>
           <Sheet>
             <SheetTrigger asChild>
@@ -73,9 +87,13 @@ export function Navigation({ currentSection, onSectionChange }: NavigationProps)
                 <div className="mb-6">
                   <div className="flex items-center gap-2">
                     <NavigationIcon className="h-6 w-6 text-blue-600" />
-                    <span className="text-lg font-medium text-gray-900">SmartTransit</span>
+                    <span className="text-lg font-medium text-gray-900">
+                      SafarSaathi
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">Public Transport Tracking</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Public Transport Tracking
+                  </p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <NavItems />

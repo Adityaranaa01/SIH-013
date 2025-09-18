@@ -1,13 +1,8 @@
-// backend/routes/trips.js
 import express from 'express';
 import { TripService } from '../services/tripService.js';
 
 const router = express.Router();
 
-/**
- * GET /api/trips/active/:driverId
- * Get active trip for a driver
- */
 router.get('/active/:driverId', async (req, res) => {
   try {
     const { driverId } = req.params;
@@ -35,10 +30,6 @@ router.get('/active/:driverId', async (req, res) => {
   }
 });
 
-/**
- * POST /api/trips/start
- * Start a new trip
- */
 router.post('/start', async (req, res) => {
   try {
     const { driverId, busNumber } = req.body;
@@ -66,10 +57,6 @@ router.post('/start', async (req, res) => {
   }
 });
 
-/**
- * POST /api/trips/end
- * End an active trip
- */
 router.post('/end', async (req, res) => {
   try {
     const { tripId } = req.body;
@@ -97,10 +84,6 @@ router.post('/end', async (req, res) => {
   }
 });
 
-/**
- * GET /api/trips/:tripId
- * Get trip details by ID
- */
 router.get('/:tripId', async (req, res) => {
   try {
     const { tripId } = req.params;

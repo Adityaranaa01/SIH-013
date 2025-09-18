@@ -1,4 +1,3 @@
-// backend/server.js
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -7,22 +6,17 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-// Import routes
 import authRoutes from './routes/auth.js';
 import tripRoutes from './routes/trips.js';
 import locationRoutes from './routes/locations.js';
 import adminRoutes from './routes/admin.js';
 
-// Import services
 import { CleanupService, startCleanupJob } from './services/cleanupService.js';
 
-// Import middleware
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
-// Import database
 import { testConnection } from './config/database.js';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -35,10 +29,8 @@ const io = new Server(server, {
 });
 const PORT = process.env.PORT || 5000;
 
-// Security middleware
 app.use(helmet());
 
-// CORS configuration
 app.use(cors({
   origin: [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
@@ -46,14 +38,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Logging middleware
 app.use(morgan('combined'));
 
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -63,13 +51,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/admin', adminRoutes);
-
-// API documentation endpoint
 app.get('/api', (req, res) => {
   res.json({
     success: true,
@@ -116,16 +101,13 @@ app.get('/api', (req, res) => {
   });
 });
 
-// WebSocket connection handling
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  // Driver location update
   socket.on('location-update', async (data) => {
-    console.log('📍 Location update received:', data);
+    console.log('Location update received:', data);
 
     try {
-      // Store location in database
       const { LocationService } = await import('./services/locationService.js');
       const saveResult = await LocationService.saveLocation({
         tripId: data.tripId,
@@ -135,42 +117,36 @@ io.on('connection', (socket) => {
       });
 
       if (saveResult.success) {
-        console.log('✅ Location saved to database:', saveResult.data);
+        console.log('Location saved to database:', saveResult.data);
       } else {
-        console.error('❌ Failed to save location:', saveResult.error);
+        console.error('Failed to save location:', saveResult.error);
       }
     } catch (error) {
-      console.error('❌ Error saving location:', error);
+      console.error('Error saving location:', error);
     }
 
-    // Broadcast to all connected users
-    console.log('📡 Broadcasting to', io.engine.clientsCount, 'connected clients');
+    console.log('Broadcasting to', io.engine.clientsCount, 'connected clients');
     io.emit('bus-location-update', data);
-    console.log('📡 Broadcast sent:', data);
+    console.log('Broadcast sent:', data);
   });
 
-  // Driver trip status update
   socket.on('trip-status-update', (data) => {
     console.log('Trip status update:', data);
     io.emit('bus-status-update', data);
   });
 
-  // User subscription to specific bus
   socket.on('subscribe-to-bus', (busId) => {
     socket.join(`bus-${busId}`);
     console.log(`User subscribed to bus: ${busId}`);
   });
 
-  // Handle location request from admin panel
   socket.on('request-location', async (data) => {
     console.log('Location request received for trip:', data.tripId);
     try {
-      // Get the latest location for this trip
       const { LocationService } = await import('./services/locationService.js');
       const result = await LocationService.getLatestLocation(data.tripId);
 
       if (result.success && result.data) {
-        // Send the latest location back to the requesting client
         socket.emit('location-update', {
           tripId: data.tripId,
           latitude: result.data.latitude,
@@ -190,46 +166,41 @@ io.on('connection', (socket) => {
   });
 });
 
-// Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
 
-// Start server
 const startServer = async () => {
   try {
-    // Test database connection
     const dbConnected = await testConnection();
     if (!dbConnected) {
-      console.error('❌ Failed to connect to database. Server will continue but may not function properly.');
+      console.error('Failed to connect to database. Server will continue but may not function properly.');
     }
 
     server.listen(PORT, () => {
-      console.log('🚀 Driver App Backend Server Started');
+      console.log('Driver App Backend Server Started');
       console.log('================================');
-      console.log(`🌐 Server running on port ${PORT}`);
-      console.log(`📍 Health check: http://localhost:${PORT}/health`);
-      console.log(`📚 API docs: http://localhost:${PORT}/api`);
-      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-      console.log(`🗄️ Database: ${dbConnected ? 'Connected' : 'Connection failed'}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`API docs: http://localhost:${PORT}/api`);
+      console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+      console.log(`Database: ${dbConnected ? 'Connected' : 'Connection failed'}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('================================');
-      // Start background cleanup job to prune intermediary coordinates
       startCleanupJob();
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
 
-// Handle graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received. Shutting down gracefully...');
+  console.log('SIGTERM received. Shutting down gracefully...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received. Shutting down gracefully...');
+  console.log('SIGINT received. Shutting down gracefully...');
   process.exit(0);
 });
 

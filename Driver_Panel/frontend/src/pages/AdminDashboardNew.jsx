@@ -481,7 +481,7 @@ const AdminDashboardNew = () => {
                     Welcome, {currentAdmin?.username || 'Admin'}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Manage your SmartTransit fleet and routes
+                    Manage your SafarSaathi fleet and routes
                 </p>
             </div>
 

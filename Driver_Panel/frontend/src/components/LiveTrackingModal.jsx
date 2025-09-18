@@ -9,7 +9,6 @@ import L from 'leaflet';
 import io from 'socket.io-client';
 import 'leaflet/dist/leaflet.css';
 
-// Fix Leaflet default icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -17,7 +16,6 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Map controller component to handle map centering
 function MapController({ center }) {
     const map = useMap();
     useEffect(() => {
@@ -51,12 +49,10 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         };
     }, [isOpen, trip]);
 
-    // Update bus location when realTimeLocation prop changes (from parent WebSocket)
     useEffect(() => {
         if (realTimeLocation) {
             console.log('📍 LiveTrackingModal received real-time location update:', realTimeLocation);
 
-            // Only update if the location is actually different
             setBusLocation(prevLocation => {
                 if (prevLocation &&
                     prevLocation.lat === realTimeLocation.lat &&
@@ -73,7 +69,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                     accuracy: realTimeLocation.accuracy
                 };
 
-                // Add to location history for path visualization
                 setLocationHistory(prev => {
                     const lastLocation = prev[prev.length - 1];
                     if (!lastLocation ||
@@ -94,12 +89,10 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         }
     }, [realTimeLocation]);
 
-    // Set up periodic refresh for location data (every 10 seconds as backup - like user panel)
     useEffect(() => {
         if (!isOpen || !trip) return;
 
         const refreshInterval = setInterval(() => {
-            // Request fresh location data
             if (socketRef.current && socketRef.current.connected) {
                 socketRef.current.emit('request-location', { tripId: trip.trip_id });
             }
@@ -108,7 +101,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         return () => clearInterval(refreshInterval);
     }, [isOpen, trip]);
 
-    // Fix map size when it mounts
     useEffect(() => {
         if (map) {
             setMapLoading(false);
@@ -123,7 +115,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
     const connectToSocket = () => {
         if (!trip) return;
 
-        // Disconnect existing socket if any
         if (socketRef.current) {
             socketRef.current.disconnect();
             socketRef.current = null;
@@ -145,7 +136,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         socket.on('bus-location-update', (data) => {
             console.log('Received bus-location-update:', data);
             if (data.tripId === trip.trip_id) {
-                // Only update if the location is actually different
                 const newLocation = {
                     lat: data.latitude,
                     lng: data.longitude,
@@ -162,7 +152,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                     }
                     console.log('📍 New location received via bus-location-update, updating');
 
-                    // Add to location history for path visualization
                     setLocationHistory(prev => {
                         const lastLocation = prev[prev.length - 1];
                         if (!lastLocation ||
@@ -183,11 +172,9 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
             }
         });
 
-        // Listen for initial location response
         socket.on('location-update', (data) => {
             console.log('Received location-update:', data);
             if (data.tripId === trip.trip_id) {
-                // Only update if the location is actually different
                 const newLocation = {
                     lat: data.latitude,
                     lng: data.longitude,
@@ -204,7 +191,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                     }
                     console.log('📍 New location received, updating');
 
-                    // Add to location history for path visualization
                     setLocationHistory(prev => {
                         const lastLocation = prev[prev.length - 1];
                         if (!lastLocation ||
@@ -225,10 +211,8 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
             }
         });
 
-        // Request initial location data
         socket.emit('request-location', { tripId: trip.trip_id });
 
-        // Check if there's an active driver for this trip
         console.log('🔍 Checking for active driver for trip:', trip.trip_id);
     };
 
@@ -240,7 +224,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
             accuracy: locationData.accuracy
         };
 
-        // Only update if the location data is valid and different
         setBusLocation(prevLocation => {
             if (prevLocation &&
                 prevLocation.lat === newLocation.lat &&
@@ -253,16 +236,13 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         setLastUpdate(new Date(locationData.timestamp));
         setAccuracy(locationData.accuracy);
 
-        // Add to location history only if location actually changed
         setLocationHistory(prev => {
             const lastLocation = prev[prev.length - 1];
             if (!lastLocation) {
                 return [newLocation];
             }
 
-            // Only add if location actually changed (exact coordinates)
             if (lastLocation.lat !== newLocation.lat || lastLocation.lng !== newLocation.lng) {
-                // Keep only last 50 locations to prevent memory issues
                 const newHistory = [...prev, newLocation];
                 return newHistory.length > 50 ? newHistory.slice(-50) : newHistory;
             }
@@ -300,7 +280,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
     };
 
 
-    // Get bus position for map
     const busPosition = busLocation ? [busLocation.lat, busLocation.lng] : [12.9716, 77.5946];
 
     if (!isOpen || !trip) return null;
@@ -313,7 +292,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-none w-screen h-screen p-0 m-0 rounded-none">
                 <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-                    {/* Header */}
                     <header className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white/30 dark:bg-gray-900/30 backdrop-blur-md">
                         <div className="max-w-7xl mx-auto">
                             <h1 className="text-2xl font-bold mb-2">Live Bus Tracking</h1>
@@ -330,7 +308,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                     </header>
 
                     <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)]">
-                        {/* Map Section */}
                         <div className="flex-1 lg:w-4/5 relative">
                             <div className="p-2 h-full w-full">
                                 <div
@@ -365,7 +342,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                         />
                                         <MapController center={busPosition} />
 
-                                        {/* Bus Location Marker */}
                                         {busLocation && (
                                             <>
                                                 <Marker
@@ -389,7 +365,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                                     </Popup>
                                                 </Marker>
 
-                                                {/* Accuracy Circle */}
                                                 <Circle
                                                     center={[busLocation.lat, busLocation.lng]}
                                                     radius={Math.min(busLocation.accuracy || 50, 200)}
@@ -403,7 +378,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                             </>
                                         )}
 
-                                        {/* Movement Path - Red streak like user panel */}
                                         {locationHistory.length > 1 && (
                                             <Polyline
                                                 positions={locationHistory.map(loc => [loc.lat, loc.lng])}
@@ -432,7 +406,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                         </div>
                                     )}
 
-                                    {/* Center on Bus Button */}
                                     <Badge
                                         variant="outline"
                                         className="absolute bottom-0 right-4 bg-transparent border-none shadow-none z-[9999] pointer-events-auto rounded-full mx-2 mb-2 p-0"
@@ -462,7 +435,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                             </div>
                         </div>
 
-                        {/* Sidebar */}
                         <div className="lg:w-1/5 lg:min-w-72 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-l border-gray-200 dark:border-gray-700 p-3 space-y-4 overflow-y-auto">
                             <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-blue-200 dark:border-blue-800">
                                 <CardHeader className="pb-2">

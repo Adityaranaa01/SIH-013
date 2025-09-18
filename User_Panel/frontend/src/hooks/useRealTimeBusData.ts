@@ -14,15 +14,12 @@ interface BusLocation {
   };
 }
 
-// BusData interface is now imported from routeService
-
 export const useRealTimeBusData = () => {
   const { socket, isConnected } = useSocket();
   const [buses, setBuses] = useState<BusData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [routes, setRoutes] = useState<any[]>([]);
 
-  // Load routes on component mount
   useEffect(() => {
     const loadRoutes = async () => {
       try {
@@ -35,7 +32,6 @@ export const useRealTimeBusData = () => {
     loadRoutes();
   }, []);
 
-  // Fallback: Load initial bus data from database
   useEffect(() => {
     const loadInitialBusData = async () => {
       try {
@@ -73,7 +69,6 @@ export const useRealTimeBusData = () => {
       }
     };
 
-    // Load initial data if no WebSocket connection or no buses yet
     if (!isConnected || buses.length === 0) {
       loadInitialBusData();
     }
@@ -82,17 +77,13 @@ export const useRealTimeBusData = () => {
   useEffect(() => {
     if (!socket) return;
 
-    // Listen for bus location updates
     const handleLocationUpdate = (data: any) => {
       console.log("📍 Received bus-location-update:", data);
 
-      // Get route details from dynamic routes (fallback only)
       const routeDetails =
         routes.find((route) => route.route_id === data.routeId) ||
         routeService.getRouteById(data.routeId);
 
-      // Convert WebSocket data to BusData format
-      // Prioritize backend data over cached route details
       const updatedBus: BusData = {
         id: data.busNumber || data.tripId,
         route:
@@ -120,18 +111,15 @@ export const useRealTimeBusData = () => {
         );
 
         if (existingBusIndex >= 0) {
-          // Update existing bus
           const updatedBuses = [...prevBuses];
           updatedBuses[existingBusIndex] = updatedBus;
           return updatedBuses;
         } else {
-          // Add new bus
           return [...prevBuses, updatedBus];
         }
       });
     };
 
-    // Listen for bus status updates
     const handleStatusUpdate = (data: any) => {
       if (data.status === "offline") {
         setBuses((prevBuses) =>
@@ -147,7 +135,6 @@ export const useRealTimeBusData = () => {
     socket.on("bus-status-update", handleStatusUpdate);
     console.log("✅ WebSocket event listeners registered");
 
-    // Fetch initial bus data from Supabase API
     const fetchInitialData = async () => {
       try {
         const response = await fetch(
@@ -198,7 +185,6 @@ export const useRealTimeBusData = () => {
 
     fetchInitialData();
 
-    // Set up periodic refresh as fallback (every 10 seconds)
     const refreshInterval = setInterval(async () => {
       try {
         const response = await fetch(
@@ -236,7 +222,6 @@ export const useRealTimeBusData = () => {
               };
             });
 
-            // Update buses with fresh data
             setBuses(updatedBuses);
           }
         }

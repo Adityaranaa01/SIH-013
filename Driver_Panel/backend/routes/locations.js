@@ -1,18 +1,12 @@
-// backend/routes/locations.js
 import express from 'express';
 import { LocationService } from '../services/locationService.js';
 
 const router = express.Router();
 
-/**
- * POST /api/locations
- * Save GPS location data
- */
 router.post('/', async (req, res) => {
   try {
     const { tripId, latitude, longitude, timestamp } = req.body;
 
-    // Validate required fields (driverId and busNumber no longer required)
     if (!tripId || latitude === undefined || longitude === undefined) {
       return res.status(400).json({
         success: false,
@@ -41,10 +35,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/locations/active
- * Get active bus locations
- */
 router.get('/active', async (req, res) => {
   try {
     const result = await LocationService.getActiveLocations();
@@ -63,10 +53,6 @@ router.get('/active', async (req, res) => {
   }
 });
 
-/**
- * GET /api/locations/trip/:tripId
- * Get location history for a trip
- */
 router.get('/trip/:tripId', async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -95,10 +81,6 @@ router.get('/trip/:tripId', async (req, res) => {
   }
 });
 
-/**
- * GET /api/locations/latest/:tripId
- * Get latest location for a trip
- */
 router.get('/latest/:tripId', async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -126,10 +108,6 @@ router.get('/latest/:tripId', async (req, res) => {
   }
 });
 
-/**
- * GET /api/locations/latest-by-bus/:busNumber
- * Get latest location for a bus regardless of trip status
- */
 router.get('/latest-by-bus/:busNumber', async (req, res) => {
   try {
     const { busNumber } = req.params;
@@ -148,28 +126,6 @@ router.get('/latest-by-bus/:busNumber', async (req, res) => {
   } catch (error) {
     console.error('Get latest by bus endpoint error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
-/**
- * GET /api/locations/active
- * Get real-time locations for all active trips
- */
-router.get('/active', async (req, res) => {
-  try {
-    const result = await LocationService.getActiveLocations();
-
-    if (!result.success) {
-      return res.status(500).json(result);
-    }
-
-    res.json(result);
-  } catch (error) {
-    console.error('Get active locations endpoint error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
   }
 });
 

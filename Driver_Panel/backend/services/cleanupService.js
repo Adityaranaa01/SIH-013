@@ -1,16 +1,7 @@
-// backend/services/cleanupService.js
 import { supabase } from '../config/database.js';
 
-/**
- * Cleanup service for managing old data
- */
 export class CleanupService {
 
-  /**
-   * Clean up old location data for ended trips only
-   * @param {number} hoursOld - Age in hours for ended trips (default: 24 hours)
-   * @returns {Promise<Object>} Cleanup result
-   */
   static async cleanupOldLocations(hoursOld = 24) {
     try {
       const cutoffTime = new Date();
@@ -18,7 +9,6 @@ export class CleanupService {
 
       console.log(`Cleaning up location data for ended trips older than ${hoursOld} hour(s): ${cutoffTime.toISOString()}`);
 
-      // Only delete location data for trips that have ended
       const { data, error } = await supabase
         .from('trip_locations')
         .delete()
@@ -52,10 +42,6 @@ export class CleanupService {
     }
   }
 
-  /**
-   * Get location count for monitoring
-   * @returns {Promise<Object>} Location count data
-   */
   static async getLocationCount() {
     try {
       const { count, error } = await supabase
@@ -79,11 +65,6 @@ export class CleanupService {
     }
   }
 
-  /**
-   * Clean up location data for a specific ended trip
-   * @param {string} tripId - Trip ID to clean up
-   * @returns {Promise<Object>} Cleanup result
-   */
   static async cleanupTripLocations(tripId) {
     try {
       console.log(`Cleaning up location data for ended trip: ${tripId}`);
@@ -115,10 +96,6 @@ export class CleanupService {
     }
   }
 
-  /**
-   * Get oldest location timestamp
-   * @returns {Promise<Object>} Oldest location data
-   */
   static async getOldestLocation() {
     try {
       const { data, error } = await supabase
@@ -128,7 +105,7 @@ export class CleanupService {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
@@ -146,31 +123,25 @@ export class CleanupService {
   }
 }
 
-/**
- * Start the background cleanup job
- * Runs every hour to clean up old location data from ended trips only
- */
 export function startCleanupJob() {
-  console.log('🧹 Starting location cleanup job...');
+  console.log('Starting location cleanup job...');
 
-  // Run cleanup every hour (3600000 ms)
   setInterval(async () => {
     try {
-      const result = await CleanupService.cleanupOldLocations(24); // Clean up data from ended trips older than 24 hours
+      const result = await CleanupService.cleanupOldLocations(24);
 
       if (result.success && result.deletedCount > 0) {
-        console.log(`🧹 Cleaned up ${result.deletedCount} old location records from ended trips`);
+        console.log(`Cleaned up ${result.deletedCount} old location records from ended trips`);
       }
 
-      // Optional: Log current location count for monitoring
       const countResult = await CleanupService.getLocationCount();
       if (countResult.success) {
-        console.log(`📍 Current location records in database: ${countResult.count}`);
+        console.log(`Current location records in database: ${countResult.count}`);
       }
     } catch (error) {
-      console.error('❌ Cleanup job error:', error);
+      console.error('Cleanup job error:', error);
     }
-  }, 3600000); // 1 hour
+  }, 3600000);
 
-  console.log('✅ Location cleanup job started (runs every hour, only cleans ended trips)');
+  console.log('Location cleanup job started (runs every hour, only cleans ended trips)');
 }

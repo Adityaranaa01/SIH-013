@@ -34,7 +34,6 @@ const RouteDetailsModal = ({ isOpen, onClose, route, onEdit }) => {
 
                 <div className="flex-1 overflow-y-auto px-6 py-4">
                     <div className="space-y-6">
-                        {/* Route Information */}
                         <Card>
                             <CardHeader className="px-6 py-4">
                                 <CardTitle className="flex items-center space-x-2">
@@ -78,7 +77,6 @@ const RouteDetailsModal = ({ isOpen, onClose, route, onEdit }) => {
                             </CardContent>
                         </Card>
 
-                        {/* Route Stops */}
                         <Card>
                             <CardHeader className="px-6 py-4">
                                 <CardTitle className="flex items-center space-x-2">
@@ -123,7 +121,6 @@ const RouteDetailsModal = ({ isOpen, onClose, route, onEdit }) => {
                             </CardContent>
                         </Card>
 
-                        {/* Action Buttons */}
                         <div className="flex justify-end space-x-3 pt-4">
                             <Button variant="outline" onClick={onClose} className="px-6 py-2">
                                 Close

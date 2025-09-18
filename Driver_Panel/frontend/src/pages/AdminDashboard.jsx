@@ -1,4 +1,3 @@
-// src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
@@ -116,7 +115,6 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-            {/* Header */}
             <header className="bg-card/50 backdrop-blur-sm border-b border-border/50 p-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -147,7 +145,6 @@ const AdminDashboard = () => {
                 </div>
             </header>
 
-            {/* Navigation Tabs */}
             <div className="bg-card/30 backdrop-blur-sm border-b border-border/50">
                 <div className="max-w-7xl mx-auto px-4">
                     <nav className="flex space-x-8">
@@ -174,11 +171,9 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto p-6">
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
-                        {/* Stats Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
                                 <CardContent className="p-6">
@@ -229,7 +224,6 @@ const AdminDashboard = () => {
                             </Card>
                         </div>
 
-                        {/* Recent Activity */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card>
                                 <CardHeader>

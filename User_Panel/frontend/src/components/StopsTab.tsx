@@ -71,7 +71,6 @@ interface BusTrackingDetails {
   stops: BusStopTimelineItem[];
 }
 
-// Convert API routes to stops data
 const convertRoutesToStops = (routes: Route[]): StopData[] => {
   const stopMap = new Map<string, StopData>();
 
@@ -96,12 +95,10 @@ const convertRoutesToStops = (routes: Route[]): StopData[] => {
   return Array.from(stopMap.values());
 };
 
-// Generate mock ETAs based on real stops data
 const generateMockETAs = (stops: StopData[]): Record<string, BusETA[]> => {
   return stops.reduce((acc, stop) => {
     const etas: BusETA[] = [];
 
-    // Generate ETAs for each route that passes through this stop
     stop.routes.forEach((routeDesc, index) => {
       if (routeDesc !== "General Stop") {
         etas.push({
@@ -128,7 +125,6 @@ export function StopsTab() {
   const [stops, setStops] = useState<StopData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load stops from API
   useEffect(() => {
     const loadStops = async () => {
       try {
@@ -147,10 +143,8 @@ export function StopsTab() {
     loadStops();
   }, []);
 
-  // Generate mock ETAs for current stops
   const mockETAs = useMemo(() => generateMockETAs(stops), [stops]);
 
-  // Suggestion dropdown state
   const locations = useMemo(() => {
     const allStops = stops.map((s) => s.name);
     const allRoutes = Array.from(new Set(stops.flatMap((s) => s.routes)));
@@ -187,12 +181,10 @@ export function StopsTab() {
       idx: number;
     }> = [];
 
-    // Safety check for stops
     if (!stops || stops.length === 0) {
       return [];
     }
 
-    // Search stops
     stops.forEach((stop) => {
       if (stop && stop.name) {
         const name = stop.name.toLowerCase();
@@ -208,7 +200,6 @@ export function StopsTab() {
       }
     });
 
-    // Search routes
     const allRoutes = Array.from(new Set(stops.flatMap((s) => s.routes || [])));
     allRoutes.forEach((routeDesc) => {
       if (routeDesc) {
@@ -225,7 +216,6 @@ export function StopsTab() {
       }
     });
 
-    // Search buses
     Object.values(busRouteMapping).forEach((bus) => {
       const busId = bus.busId.toLowerCase();
       const busNumber = bus.busNumber.toLowerCase();
@@ -277,28 +267,22 @@ export function StopsTab() {
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [selectedBus, setSelectedBus] = useState<BusETA | null>(null);
 
-  // Generate dynamic tracking data based on selected bus
   const generateBusTrackingData = (
     busId: string
   ): BusTrackingDetails | null => {
     const busDetails = getBusDetails(busId);
     if (!busDetails) return null;
 
-    // Find stops that belong to this bus's route
     const routeStops = stops.filter((stop) =>
       stop.routes.some((routeDesc) => {
-        // Try multiple matching strategies
         const routeId = busDetails.routeId?.toLowerCase() || "";
         const routeName = busDetails.routeName?.toLowerCase() || "";
         const routeDescLower = routeDesc.toLowerCase();
 
-        // Match by route ID (500A, 600B, 700A)
         if (routeDescLower.includes(routeId)) return true;
 
-        // Match by route name
         if (routeDescLower.includes(routeName)) return true;
 
-        // Specific route matching for our 3 routes
         if (
           routeId === "500a" &&
           routeDescLower.includes("majestic") &&
@@ -318,13 +302,11 @@ export function StopsTab() {
         )
           return true;
 
-        // Match by route description parts
         const routeParts = routeDescLower.split(" → ");
         if (routeParts.length >= 2) {
           const startPoint = routeParts[0].trim();
           const endPoint = routeParts[1].trim();
 
-          // Check if route ID matches any part of the description
           if (startPoint.includes(routeId) || endPoint.includes(routeId))
             return true;
         }
@@ -334,7 +316,6 @@ export function StopsTab() {
     );
 
     if (routeStops.length === 0) {
-      // Fallback: show a message that no route data is available
       console.log(
         "No route stops found for bus:",
         busId,
@@ -367,9 +348,7 @@ export function StopsTab() {
       };
     }
 
-    // Generate stops based on the found route
     const sortedRouteStops = routeStops.sort((a, b) => {
-      // Try to sort by route order if available
       const aRoute = a.routes.find((r) =>
         r.toLowerCase().includes(busDetails.routeId?.toLowerCase() || "")
       );
@@ -383,7 +362,6 @@ export function StopsTab() {
       const currentTime = new Date();
       const baseTime = new Date(currentTime.getTime() + index * 5 * 60000); // 5 minutes per stop
 
-      // Randomly assign current stop (between 1 and 3 stops from start)
       const currentStopIndex = Math.floor(Math.random() * 3) + 1;
       const isCurrent = index === currentStopIndex;
       const isNext = index === currentStopIndex + 1;
@@ -448,7 +426,6 @@ export function StopsTab() {
     setIsSearching(true);
     setHasSearched(true);
 
-    // Simulate API call
     setTimeout(() => {
       const matchingStop = stops.find((stop) =>
         stop.name.toLowerCase().includes(pickupPoint.toLowerCase())
@@ -457,12 +434,10 @@ export function StopsTab() {
       if (matchingStop && mockETAs[matchingStop.id]) {
         setSearchResults(mockETAs[matchingStop.id]);
       } else {
-        // Try to find buses that might be related to the search query
         const searchQuery = pickupPoint.toLowerCase();
         const relatedBuses = searchBuses(pickupPoint);
 
         if (relatedBuses.length > 0) {
-          // Show related buses found
           const busResults = relatedBuses.map((bus, index) => ({
             busId: bus.busId,
             route: bus.routeName,
@@ -472,7 +447,6 @@ export function StopsTab() {
           }));
           setSearchResults(busResults);
         } else {
-          // No buses found matching the search
           setSearchResults([]);
         }
       }
@@ -547,7 +521,6 @@ export function StopsTab() {
         </p>
       </div>
 
-      {/* Journey Planner */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Plan Your Journey</CardTitle>
@@ -569,7 +542,6 @@ export function StopsTab() {
                     setPickupPoint(e.target.value);
                     setShowPickupSuggestions(true);
                     setPickupActiveIndex(-1);
-                    // Reset search state when user starts typing
                     if (hasSearched) {
                       setHasSearched(false);
                       setSearchResults([]);
@@ -708,7 +680,6 @@ export function StopsTab() {
             </div>
           </div>
 
-          {/* Intermediate Stops */}
           {intermediateStops.length > 0 && (
             <div className="space-y-2">
               <Label>Intermediate Stops</Label>
@@ -758,7 +729,6 @@ export function StopsTab() {
         </CardContent>
       </Card>
 
-      {/* Search Results as Bus Cards */}
       {searchResults.length > 0 && (
         <Card className="bg-card/50 backdrop-blur-sm border-border/50">
           <CardHeader>
@@ -834,7 +804,6 @@ export function StopsTab() {
         </Card>
       )}
 
-      {/* No Results Message */}
       {!isSearching &&
         hasSearched &&
         searchResults.length === 0 &&
@@ -861,7 +830,6 @@ export function StopsTab() {
           </Card>
         )}
 
-      {/* Track Bus Modal */}
       <Dialog open={isTrackModalOpen} onOpenChange={setIsTrackModalOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
@@ -877,7 +845,6 @@ export function StopsTab() {
               className="relative overflow-y-auto"
               style={{ height: "calc(85vh - 120px)" }}
             >
-              {/* Minimal vertical timeline */}
               <div className="space-y-2 p-1">
                 {generateBusTrackingData(selectedBus.busId)?.stops.map(
                   (s, index, arr) => (

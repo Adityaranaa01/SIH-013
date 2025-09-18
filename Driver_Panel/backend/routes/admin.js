@@ -1,4 +1,3 @@
-// backend/routes/admin.js
 import express from 'express';
 import { RouteService } from '../services/routeService.js';
 import { AdminService } from '../services/adminService.js';
@@ -6,7 +5,6 @@ import { supabase } from '../config/database.js';
 
 const router = express.Router();
 
-// Admin authentication middleware
 const authenticateAdmin = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -16,13 +14,9 @@ const authenticateAdmin = (req, res, next) => {
         });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
 
-    // For demo purposes, we'll extract admin ID from the token
-    // In production, implement proper JWT validation
     if (token.startsWith('admin-token-')) {
-        // Extract admin ID from localStorage or token
-        // For now, we'll use a default admin ID
         req.admin = { admin_id: 'admin-1' };
         next();
     } else {
@@ -33,10 +27,6 @@ const authenticateAdmin = (req, res, next) => {
     }
 };
 
-/**
- * GET /api/admin/debug/users
- * Debug endpoint to check admin users
- */
 router.get('/debug/users', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -56,10 +46,6 @@ router.get('/debug/users', async (req, res) => {
     }
 });
 
-/**
- * POST /api/admin/auth/login
- * Admin login
- */
 router.post('/auth/login', async (req, res) => {
     try {
         console.log('Login request received:', {
@@ -88,7 +74,7 @@ router.post('/auth/login', async (req, res) => {
             success: true,
             data: {
                 ...result.data,
-                token: 'admin-token-' + Date.now() // Simple token for demo
+                token: 'admin-token-' + Date.now()
             }
         });
     } catch (error) {
@@ -100,10 +86,6 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/stats
- * Get system statistics
- */
 router.get('/stats', authenticateAdmin, async (req, res) => {
     try {
         const result = await AdminService.getSystemStats();
@@ -117,10 +99,6 @@ router.get('/stats', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes
- * Get all routes
- */
 router.get('/routes', authenticateAdmin, async (req, res) => {
     try {
         const result = await RouteService.getAllRoutes();
@@ -134,10 +112,6 @@ router.get('/routes', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes/active
- * Get active routes only
- */
 router.get('/routes/active', authenticateAdmin, async (req, res) => {
     try {
         const result = await RouteService.getActiveRoutes();
@@ -151,10 +125,6 @@ router.get('/routes/active', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes/with-stops
- * Get all routes with their stops
- */
 router.get('/routes/with-stops', authenticateAdmin, async (req, res) => {
     try {
         const result = await RouteService.getRoutesWithStops();
@@ -168,10 +138,6 @@ router.get('/routes/with-stops', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes/:routeId
- * Get route by ID
- */
 router.get('/routes/:routeId', authenticateAdmin, async (req, res) => {
     try {
         const { routeId } = req.params;
@@ -186,10 +152,6 @@ router.get('/routes/:routeId', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * POST /api/admin/routes
- * Create new route
- */
 router.post('/routes', authenticateAdmin, async (req, res) => {
     try {
         const routeData = req.body;
@@ -209,10 +171,6 @@ router.post('/routes', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/routes/:routeId
- * Update route
- */
 router.put('/routes/:routeId', authenticateAdmin, async (req, res) => {
     try {
         const { routeId } = req.params;
@@ -233,10 +191,6 @@ router.put('/routes/:routeId', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * DELETE /api/admin/routes/:routeId
- * Delete route
- */
 router.delete('/routes/:routeId', authenticateAdmin, async (req, res) => {
     try {
         const { routeId } = req.params;
@@ -256,10 +210,6 @@ router.delete('/routes/:routeId', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes/:routeId/stops
- * Get route stops
- */
 router.get('/routes/:routeId/stops', authenticateAdmin, async (req, res) => {
     try {
         const { routeId } = req.params;
@@ -274,10 +224,6 @@ router.get('/routes/:routeId/stops', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * POST /api/admin/routes/:routeId/stops
- * Add route stop
- */
 router.post('/routes/:routeId/stops', authenticateAdmin, async (req, res) => {
     try {
         const { routeId } = req.params;
@@ -298,10 +244,6 @@ router.post('/routes/:routeId/stops', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/stops/:stopId
- * Update route stop
- */
 router.put('/stops/:stopId', authenticateAdmin, async (req, res) => {
     try {
         const { stopId } = req.params;
@@ -322,10 +264,6 @@ router.put('/stops/:stopId', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * DELETE /api/admin/stops/:stopId
- * Delete route stop
- */
 router.delete('/stops/:stopId', authenticateAdmin, async (req, res) => {
     try {
         const { stopId } = req.params;
@@ -345,10 +283,6 @@ router.delete('/stops/:stopId', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/routes-with-stops
- * Get all routes with their stops
- */
 router.get('/routes-with-stops', authenticateAdmin, async (req, res) => {
     try {
         const result = await RouteService.getRoutesWithStops();
@@ -362,10 +296,6 @@ router.get('/routes-with-stops', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/drivers
- * Get all drivers
- */
 router.get('/drivers', authenticateAdmin, async (req, res) => {
     try {
         const result = await AdminService.getAllDrivers();
@@ -379,10 +309,6 @@ router.get('/drivers', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/drivers/:driverId/assign-route
- * Assign driver to route
- */
 router.put('/drivers/:driverId/assign-route', authenticateAdmin, async (req, res) => {
     try {
         const { driverId } = req.params;
@@ -411,10 +337,6 @@ router.put('/drivers/:driverId/assign-route', authenticateAdmin, async (req, res
     }
 });
 
-/**
- * GET /api/admin/buses
- * Get all buses
- */
 router.get('/buses', authenticateAdmin, async (req, res) => {
     try {
         const result = await AdminService.getAllBuses();
@@ -428,10 +350,6 @@ router.get('/buses', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * POST /api/admin/buses
- * Create new bus
- */
 router.post('/buses', authenticateAdmin, async (req, res) => {
     try {
         const busData = req.body;
@@ -451,10 +369,6 @@ router.post('/buses', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/buses/:busNumber
- * Update bus
- */
 router.put('/buses/:busNumber', authenticateAdmin, async (req, res) => {
     try {
         const { busNumber } = req.params;
@@ -475,10 +389,6 @@ router.put('/buses/:busNumber', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * DELETE /api/admin/buses/:busNumber
- * Delete bus
- */
 router.delete('/buses/:busNumber', authenticateAdmin, async (req, res) => {
     try {
         const { busNumber } = req.params;
@@ -498,10 +408,6 @@ router.delete('/buses/:busNumber', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/buses/:busNumber/assign-route
- * Assign bus to route
- */
 router.put('/buses/:busNumber/assign-route', authenticateAdmin, async (req, res) => {
     try {
         const { busNumber } = req.params;
@@ -530,10 +436,6 @@ router.put('/buses/:busNumber/assign-route', authenticateAdmin, async (req, res)
     }
 });
 
-/**
- * GET /api/admin/trips/active
- * Get active trips
- */
 router.get('/trips/active', authenticateAdmin, async (req, res) => {
     try {
         const result = await AdminService.getActiveTrips();
@@ -547,10 +449,6 @@ router.get('/trips/active', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * GET /api/admin/locations/recent
- * Get recent location updates
- */
 router.get('/locations/recent', authenticateAdmin, async (req, res) => {
     try {
         const result = await AdminService.getRecentLocationUpdates();
@@ -564,16 +462,11 @@ router.get('/locations/recent', authenticateAdmin, async (req, res) => {
     }
 });
 
-/**
- * PUT /api/admin/profile
- * Update admin profile (username and password)
- */
 router.put('/profile', authenticateAdmin, async (req, res) => {
     try {
         const { username, currentPassword, newPassword } = req.body;
         const adminId = req.admin.admin_id;
 
-        // Validate required fields
         if (!username || !username.trim()) {
             return res.status(400).json({
                 success: false,
@@ -581,7 +474,6 @@ router.put('/profile', authenticateAdmin, async (req, res) => {
             });
         }
 
-        // If changing password, validate current password
         if (newPassword) {
             if (!currentPassword) {
                 return res.status(400).json({

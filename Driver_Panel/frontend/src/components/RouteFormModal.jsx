@@ -109,7 +109,6 @@ const RouteFormModal = ({ isOpen, onClose, onSave, initialRoute = null }) => {
 
                 <div className="flex-1 overflow-y-auto px-6 py-4">
                     <div className="space-y-6">
-                        {/* Basic Route Information */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Route Information</CardTitle>
@@ -179,13 +178,11 @@ const RouteFormModal = ({ isOpen, onClose, onSave, initialRoute = null }) => {
                             </CardContent>
                         </Card>
 
-                        {/* Stops Management */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Route Stops</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {/* Add New Stop */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="newStopName">Stop Name</Label>
@@ -229,7 +226,6 @@ const RouteFormModal = ({ isOpen, onClose, onSave, initialRoute = null }) => {
                                     </Button>
                                 </div>
 
-                                {/* Stops List */}
                                 {stops.length > 0 && (
                                     <div className="border rounded-lg">
                                         <Table>

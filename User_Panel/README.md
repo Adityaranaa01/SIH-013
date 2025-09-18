@@ -1,4 +1,4 @@
-# SmartTransit Real-time Bus Tracking System
+# SafarSaathi Real-time Bus Tracking System
 
 A complete real-time bus tracking system with separate user and driver panels connected via WebSocket backend.
 
@@ -176,9 +176,3 @@ DRIVER_PANEL_URL=http://localhost:3001
 3. Configure reverse proxy (nginx)
 4. Set up SSL certificates
 5. Configure database for persistence
-
-## Team
-
-Smart India Hackathon 2024 Team
-
-- SB, SR, SY, AR, SD, PS

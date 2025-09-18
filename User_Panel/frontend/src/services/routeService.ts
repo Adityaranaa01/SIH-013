@@ -1,4 +1,3 @@
-// src/services/routeService.ts
 const API_BASE_URL = "http://localhost:5000/api";
 
 export interface RouteStop {
@@ -42,7 +41,6 @@ class RouteService {
   async getRoutes(): Promise<Route[]> {
     const now = Date.now();
 
-    // Return cached data if still fresh
     if (this.routes.length > 0 && now - this.lastFetch < this.CACHE_DURATION) {
       return this.routes;
     }
@@ -87,8 +85,6 @@ class RouteService {
   }
 
   getBusesForRoute(routeId: string): BusData[] {
-    // This would typically come from the real-time bus data
-    // For now, return empty array as bus data comes from WebSocket
     return [];
   }
 
@@ -102,7 +98,6 @@ class RouteService {
   }
 
   private getFallbackRoutes(): Route[] {
-    // Fallback routes if API fails - matches admin panel data
     return [
       {
         route_id: "500A",

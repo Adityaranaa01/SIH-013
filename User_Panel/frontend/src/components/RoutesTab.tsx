@@ -31,7 +31,6 @@ interface RouteData {
   stops: StopInfo[];
 }
 
-// Convert API Route to RouteData format
 const convertRouteToRouteData = (route: Route): RouteData => ({
   id: `RT-${route.route_id}`,
   name: route.route_name,
@@ -55,7 +54,6 @@ export function RoutesTab() {
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load routes from API
   useEffect(() => {
     const loadRoutes = async () => {
       try {
@@ -65,7 +63,6 @@ export function RoutesTab() {
         setRoutes(routeData);
       } catch (error) {
         console.error("Failed to load routes:", error);
-        // Fallback to empty array if API fails
         setRoutes([]);
       } finally {
         setIsLoading(false);

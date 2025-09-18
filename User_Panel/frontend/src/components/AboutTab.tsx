@@ -58,10 +58,9 @@ export function AboutTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="text-center">
         <Info className="w-16 h-16 mx-auto mb-4 text-primary" />
-        <h2 className="text-2xl font-bold mb-2">About SmartTransit</h2>
+        <h2 className="text-2xl font-bold mb-2">About SafarSaathi</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           A next-generation public transport tracking system designed for Smart
           India Hackathon 2025, addressing the challenges of small city
@@ -69,7 +68,6 @@ export function AboutTab() {
         </p>
       </div>
 
-      {/* Problem Statement */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -93,12 +91,11 @@ export function AboutTab() {
         </CardContent>
       </Card>
 
-      {/* Features */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Key Features</CardTitle>
           <CardDescription>
-            Technologies and capabilities that make SmartTransit unique
+            Technologies and capabilities that make SafarSaathi unique
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -120,7 +117,6 @@ export function AboutTab() {
         </CardContent>
       </Card>
 
-      {/* Future Scope */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -146,7 +142,6 @@ export function AboutTab() {
         </CardContent>
       </Card>
 
-      {/* Team Credits */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -172,12 +167,11 @@ export function AboutTab() {
         </CardContent>
       </Card>
 
-      {/* Technical Details */}
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Technical Implementation</CardTitle>
           <CardDescription>
-            Technologies and architecture powering SmartTransit
+            Technologies and architecture powering SafarSaathi
           </CardDescription>
         </CardHeader>
         <CardContent>

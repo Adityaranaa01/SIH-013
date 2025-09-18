@@ -10,12 +10,11 @@ export function Footer() {
     <footer className="bg-gray-50 border-t border-gray-200 py-12">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="grid md:grid-cols-4 gap-8">
-          {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <NavigationIcon className="h-6 w-6 text-blue-600" />
               <span className="text-xl font-medium text-gray-900">
-                SmartTransit
+                SafarSaathi
               </span>
             </div>
             <p className="text-gray-600 mb-4 max-w-md">
@@ -27,7 +26,6 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Contact Info */}
           <div>
             <h3 className="font-medium text-gray-900 mb-4">Contact</h3>
             <div className="space-y-3">
@@ -46,7 +44,6 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Links */}
           <div>
             <h3 className="font-medium text-gray-900 mb-4">Quick Links</h3>
             <div className="space-y-2">
@@ -61,7 +58,7 @@ export function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">
-              © 2025 SmartTransit. Built for Smart India Hackathon.
+              © 2025 SafarSaathi. Built for Smart India Hackathon.
             </p>
             <div className="flex gap-6">
               <span className="text-sm text-gray-500">Privacy Policy</span>

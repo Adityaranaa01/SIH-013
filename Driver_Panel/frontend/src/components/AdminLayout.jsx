@@ -72,7 +72,6 @@ export function AdminLayout({ children, currentPage, onPageChange, currentAdmin,
         setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showProfileDropdown && !event.target.closest('.profile-dropdown')) {
@@ -97,7 +96,7 @@ export function AdminLayout({ children, currentPage, onPageChange, currentAdmin,
                             </div>
                             <div>
                                 <h2 className="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    SmartTransit
+                                    SafarSaathi
                                 </h2>
                                 <p className="text-xs text-muted-foreground">Admin Panel</p>
                             </div>
@@ -144,7 +143,6 @@ export function AdminLayout({ children, currentPage, onPageChange, currentAdmin,
                                     <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
                                 </div>
 
-                                {/* Dropdown Menu */}
                                 {showProfileDropdown && (
                                     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
                                         <button
@@ -212,7 +210,6 @@ export function AdminLayout({ children, currentPage, onPageChange, currentAdmin,
                 </main>
             </div>
 
-            {/* Logout Confirmation Dialog */}
             {showLogoutDialog && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div
@@ -244,7 +241,6 @@ export function AdminLayout({ children, currentPage, onPageChange, currentAdmin,
                 </div>
             )}
 
-            {/* Admin Profile Modal */}
             {showProfileModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div

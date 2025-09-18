@@ -139,7 +139,6 @@ export const ToastProvider = ({ children }) => {
     );
 };
 
-// Add CSS for animations
 const style = document.createElement('style');
 style.textContent = `
   @keyframes slideInRight {

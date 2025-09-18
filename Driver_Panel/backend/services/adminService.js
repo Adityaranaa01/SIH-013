@@ -1,18 +1,8 @@
-// backend/services/adminService.js
 import { supabase } from '../config/database.js';
 import bcrypt from 'bcrypt';
 
-/**
- * Admin management service
- */
 export class AdminService {
 
-    /**
-     * Authenticate admin user
-     * @param {string} username - Username
-     * @param {string} password - Password
-     * @returns {Promise<Object>} Authentication result
-     */
     static async authenticateAdmin(username, password) {
         try {
             console.log('Admin login attempt:', { username, password });
@@ -42,7 +32,6 @@ export class AdminService {
                 };
             }
 
-            // Use bcrypt to compare passwords
             const isValidPassword = await bcrypt.compare(password, data.password_hash);
             console.log('Password check:', {
                 provided: password,
@@ -74,13 +63,8 @@ export class AdminService {
         }
     }
 
-    /**
-     * Get system statistics
-     * @returns {Promise<Object>} System stats
-     */
     static async getSystemStats() {
         try {
-            // Get counts for different entities
             const [driversResult, busesResult, routesResult, activeTripsResult] = await Promise.all([
                 supabase.from('drivers').select('*', { count: 'exact', head: true }),
                 supabase.from('buses').select('*', { count: 'exact', head: true }),
@@ -88,13 +72,11 @@ export class AdminService {
                 supabase.from('trips').select('*', { count: 'exact', head: true }).eq('status', 'active')
             ]);
 
-            // Get active drivers
             const { data: activeDrivers } = await supabase
                 .from('drivers')
                 .select('*')
                 .in('status', ['active', 'on_trip']);
 
-            // Get recent trips (last 24 hours)
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
 
@@ -125,10 +107,6 @@ export class AdminService {
         }
     }
 
-    /**
-     * Get all drivers with their assigned routes
-     * @returns {Promise<Object>} Drivers data
-     */
     static async getAllDrivers() {
         try {
             const { data, error } = await supabase
@@ -161,12 +139,6 @@ export class AdminService {
         }
     }
 
-    /**
-     * Update driver route assignment
-     * @param {string} driverId - Driver ID
-     * @param {string} routeId - Route ID
-     * @returns {Promise<Object>} Update result
-     */
     static async assignDriverToRoute(driverId, routeId) {
         try {
             const { data, error } = await supabase
@@ -193,10 +165,6 @@ export class AdminService {
         }
     }
 
-    /**
-     * Get all buses with their current status
-     * @returns {Promise<Object>} Buses data
-     */
     static async getAllBuses() {
         try {
             const { data, error } = await supabase
@@ -228,10 +196,6 @@ export class AdminService {
         }
     }
 
-    /**
-     * Get active trips with details
-     * @returns {Promise<Object>} Active trips data
-     */
     static async getActiveTrips() {
         try {
             const { data, error } = await supabase
@@ -268,10 +232,6 @@ export class AdminService {
         }
     }
 
-    /**
-     * Get recent location updates for active trips
-     * @returns {Promise<Object>} Location updates data
-     */
     static async getRecentLocationUpdates() {
         try {
             const { data, error } = await supabase
@@ -308,20 +268,10 @@ export class AdminService {
         }
     }
 
-    /**
-     * Update admin profile (username and password)
-     * @param {string} adminId - Admin ID
-     * @param {Object} updateData - Update data
-     * @param {string} updateData.username - New username
-     * @param {string} updateData.currentPassword - Current password (required if changing password)
-     * @param {string} updateData.newPassword - New password (optional)
-     * @returns {Promise<Object>} Update result or error
-     */
     static async updateAdminProfile(adminId, updateData) {
         try {
             const { username, currentPassword, newPassword } = updateData;
 
-            // First, get the current admin data
             const { data: currentAdmin, error: fetchError } = await supabase
                 .from('admin_users')
                 .select('*')
@@ -339,7 +289,6 @@ export class AdminService {
                 };
             }
 
-            // If changing password, verify current password
             if (newPassword) {
                 const isValidCurrentPassword = await bcrypt.compare(currentPassword, currentAdmin.password_hash);
                 if (!isValidCurrentPassword) {
@@ -350,19 +299,16 @@ export class AdminService {
                 }
             }
 
-            // Prepare update data
             const updateFields = {
                 username: username,
                 updated_at: new Date().toISOString()
             };
 
-            // If new password provided, hash it and update
             if (newPassword) {
                 const saltRounds = 10;
                 updateFields.password_hash = await bcrypt.hash(newPassword, saltRounds);
             }
 
-            // Update the admin profile
             const { data, error } = await supabase
                 .from('admin_users')
                 .update(updateFields)
@@ -392,21 +338,10 @@ export class AdminService {
         }
     }
 
-    /**
-     * Create new bus
-     * @param {Object} busData - Bus data
-     * @param {string} busData.bus_number - Bus number
-     * @param {string} busData.capacity - Bus capacity
-     * @param {string} busData.model - Bus model
-     * @param {string} busData.year - Bus year
-     * @param {string} busData.status - Bus status
-     * @returns {Promise<Object>} Create result
-     */
     static async createBus(busData) {
         try {
             const { bus_number, capacity, model, year, status = 'halt' } = busData;
 
-            // Validate required fields
             if (!bus_number) {
                 return {
                     success: false,
@@ -414,7 +349,6 @@ export class AdminService {
                 };
             }
 
-            // Check if bus already exists
             const { data: existingBus } = await supabase
                 .from('buses')
                 .select('bus_number')
@@ -428,7 +362,6 @@ export class AdminService {
                 };
             }
 
-            // Create the bus
             const { data, error } = await supabase
                 .from('buses')
                 .insert({
@@ -459,24 +392,16 @@ export class AdminService {
         }
     }
 
-    /**
-     * Update bus
-     * @param {string} busNumber - Bus number
-     * @param {Object} updateData - Update data
-     * @returns {Promise<Object>} Update result
-     */
     static async updateBus(busNumber, updateData) {
         try {
             const { capacity, model, year, status } = updateData;
 
-            // Prepare update fields
             const updateFields = {};
             if (capacity !== undefined) updateFields.capacity = parseInt(capacity);
             if (model !== undefined) updateFields.model = model;
             if (year !== undefined) updateFields.year = parseInt(year);
             if (status !== undefined) updateFields.status = status;
 
-            // Update the bus
             const { data, error } = await supabase
                 .from('buses')
                 .update(updateFields)
@@ -508,14 +433,8 @@ export class AdminService {
         }
     }
 
-    /**
-     * Delete bus
-     * @param {string} busNumber - Bus number
-     * @returns {Promise<Object>} Delete result
-     */
     static async deleteBus(busNumber) {
         try {
-            // Check if bus has active trips
             const { data: activeTrips } = await supabase
                 .from('trips')
                 .select('trip_id')
@@ -529,7 +448,6 @@ export class AdminService {
                 };
             }
 
-            // Delete the bus
             const { error } = await supabase
                 .from('buses')
                 .delete()
@@ -552,15 +470,8 @@ export class AdminService {
         }
     }
 
-    /**
-     * Assign bus to route
-     * @param {string} busNumber - Bus number
-     * @param {string} routeId - Route ID
-     * @returns {Promise<Object>} Assignment result
-     */
     static async assignBusToRoute(busNumber, routeId) {
         try {
-            // Check if bus exists
             const { data: bus, error: busError } = await supabase
                 .from('buses')
                 .select('bus_number')
@@ -574,7 +485,6 @@ export class AdminService {
                 };
             }
 
-            // Check if route exists
             const { data: route, error: routeError } = await supabase
                 .from('routes')
                 .select('route_id')
@@ -588,8 +498,6 @@ export class AdminService {
                 };
             }
 
-            // Update bus with route assignment
-            // First check if assigned_route column exists
             const { data: testData, error: testError } = await supabase
                 .from('buses')
                 .select('assigned_route')
@@ -616,7 +524,6 @@ export class AdminService {
                 throw error;
             }
 
-            // Also update the driver's assigned route if there's a current driver
             if (data.current_driver) {
                 await supabase
                     .from('drivers')

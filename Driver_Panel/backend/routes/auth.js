@@ -1,18 +1,12 @@
-// backend/routes/auth.js
 import express from 'express';
 import { DriverService } from '../services/driverService.js';
 
 const router = express.Router();
 
-/**
- * POST /api/auth/login
- * Authenticate driver with ID and bus number
- */
 router.post('/login', async (req, res) => {
   try {
     const { driverId, busNumber } = req.body;
 
-    // Validate input
     if (!driverId || !busNumber) {
       return res.status(400).json({
         success: false,
@@ -20,7 +14,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Authenticate driver
     const result = await DriverService.authenticateDriver(driverId, busNumber);
 
     if (!result.success) {
@@ -37,10 +30,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-/**
- * GET /api/auth/driver/:driverId
- * Get driver information by ID
- */
 router.get('/driver/:driverId', async (req, res) => {
   try {
     const { driverId } = req.params;
@@ -68,10 +57,6 @@ router.get('/driver/:driverId', async (req, res) => {
   }
 });
 
-/**
- * POST /api/auth/logout
- * Logout driver and reset statuses
- */
 router.post('/logout', async (req, res) => {
   try {
     const { driverId, busNumber } = req.body;

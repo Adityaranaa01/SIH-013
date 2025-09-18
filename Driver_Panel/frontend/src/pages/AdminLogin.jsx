@@ -1,5 +1,4 @@
-// src/pages/AdminLogin.jsx
-import React, { useState} from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -44,7 +43,6 @@ const AdminLogin = () => {
             const result = await response.json();
 
             if (result.success) {
-                // Store admin token and data
                 localStorage.setItem('adminToken', result.data.token);
                 localStorage.setItem('adminData', JSON.stringify(result.data));
                 navigate('/admin/dashboard');

@@ -38,7 +38,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validation
         if (!formData.username.trim()) {
             toast.error('Validation Error', 'Username is required.');
             return;
@@ -77,7 +76,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
             if (result.success) {
                 toast.success('Profile Updated', 'Your profile has been updated successfully.');
                 onClose();
-                // Optionally refresh the page or update the parent component
                 window.location.reload();
             } else {
                 toast.error('Update Failed', result.error || 'Failed to update profile.');
@@ -92,7 +90,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username Field */}
             <div>
                 <Label htmlFor="username" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -110,7 +107,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
                 />
             </div>
 
-            {/* Current Password Field */}
             <div>
                 <Label htmlFor="currentPassword" className="flex items-center gap-2">
                     <Lock className="h-4 w-4" />
@@ -139,7 +135,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
                 </p>
             </div>
 
-            {/* New Password Field */}
             <div>
                 <Label htmlFor="newPassword" className="flex items-center gap-2">
                     <Lock className="h-4 w-4" />
@@ -168,7 +163,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
                 </p>
             </div>
 
-            {/* Confirm Password Field */}
             {formData.newPassword && (
                 <div>
                     <Label htmlFor="confirmPassword" className="flex items-center gap-2">
@@ -196,7 +190,6 @@ const AdminProfileForm = ({ currentAdmin, onClose }) => {
                 </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Button
                     type="button"
