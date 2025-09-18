@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSocket } from "./useSocket";
-import { getBusDetails } from "../config/busMapping";
+import { routeService, BusData } from "../services/routeService";
 
 interface BusLocation {
   busId: string;
@@ -14,36 +14,46 @@ interface BusLocation {
   };
 }
 
-interface BusData {
-  id: string;
-  route: string;
-  currentLocation: { lat: number; lng: number };
-  eta: string;
-  timeToDestination: string;
-  nextStop: string;
-  isActive: boolean;
-  lastUpdate?: string;
-}
+// BusData interface is now imported from routeService
 
 export const useRealTimeBusData = () => {
   const { socket, isConnected } = useSocket();
   const [buses, setBuses] = useState<BusData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [routes, setRoutes] = useState<any[]>([]);
+
+  // Load routes on component mount
+  useEffect(() => {
+    const loadRoutes = async () => {
+      try {
+        const routesData = await routeService.getRoutes();
+        setRoutes(routesData);
+      } catch (error) {
+        console.error("Failed to load routes:", error);
+      }
+    };
+    loadRoutes();
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
 
     // Listen for bus location updates
     const handleLocationUpdate = (data: any) => {
-      // Get bus details from mapping
-      const busDetails = getBusDetails(data.busNumber || data.tripId);
+      // Get route details from dynamic routes (fallback only)
+      const routeDetails =
+        routes.find((route) => route.route_id === data.routeId) ||
+        routeService.getRouteById(data.routeId);
 
       // Convert WebSocket data to BusData format
+      // Prioritize backend data over cached route details
       const updatedBus: BusData = {
         id: data.busNumber || data.tripId,
-        route: busDetails
-          ? busDetails.routeName
-          : data.routeId || `Route ${data.tripId?.slice(-4) || "Unknown"}`,
+        route:
+          data.routeName ||
+          data.routeId ||
+          routeDetails?.route_name ||
+          `Route ${data.tripId?.slice(-4) || "Unknown"}`,
         currentLocation: {
           lat: data.latitude,
           lng: data.longitude,
@@ -53,6 +63,9 @@ export const useRealTimeBusData = () => {
         nextStop: "Live Tracking",
         isActive: true,
         lastUpdate: data.timestamp,
+        routeColor: data.routeColor || routeDetails?.color || "#1f77b4",
+        routeDescription:
+          data.routeDescription || routeDetails?.description || "Live Tracking",
       };
 
       setBuses((prevBuses) => {
@@ -89,20 +102,23 @@ export const useRealTimeBusData = () => {
     // Fetch initial bus data from Supabase API
     const fetchInitialData = async () => {
       try {
-        const base = (import.meta as any)?.env?.VITE_SOCKET_REST_BASE || "http://localhost:5000";
-        const response = await fetch(`${base}/api/locations/active`);
+        const response = await fetch(
+          "http://localhost:5000/api/locations/active"
+        );
         const data = await response.json();
 
         if (data.success && data.data) {
           const formattedBuses: BusData[] = data.data.map((location: any) => {
-            const busDetails = getBusDetails(
-              location.busNumber || location.tripId
-            );
+            const routeDetails =
+              routes.find((route) => route.route_id === location.routeId) ||
+              routeService.getRouteById(location.routeId);
             return {
               id: location.busNumber || location.tripId,
-              route: busDetails
-                ? busDetails.routeName
-                : `Route ${location.tripId?.slice(-4) || "Unknown"}`,
+              route:
+                location.routeName ||
+                location.routeId ||
+                routeDetails?.route_name ||
+                `Route ${location.tripId?.slice(-4) || "Unknown"}`,
               currentLocation: {
                 lat: location.latitude,
                 lng: location.longitude,
@@ -112,6 +128,12 @@ export const useRealTimeBusData = () => {
               nextStop: "Live Tracking",
               isActive: true,
               lastUpdate: location.timestamp,
+              routeColor:
+                location.routeColor || routeDetails?.color || "#1f77b4",
+              routeDescription:
+                location.routeDescription ||
+                routeDetails?.description ||
+                "Live Tracking",
             };
           });
 
@@ -132,7 +154,7 @@ export const useRealTimeBusData = () => {
       socket.off("bus-location-update", handleLocationUpdate);
       socket.off("bus-status-update", handleStatusUpdate);
     };
-  }, [socket]);
+  }, [socket, routes]);
 
   return { buses, isLoading, isConnected };
 };

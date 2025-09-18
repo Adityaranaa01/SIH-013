@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import cityConfig from "../config/cityConfig";
+import React, { useMemo, useState, useEffect } from "react";
+import { routeService, Route } from "../services/routeService";
 import {
   busRouteMapping,
   searchBuses,
@@ -71,42 +71,52 @@ interface BusTrackingDetails {
   stops: BusStopTimelineItem[];
 }
 
-// Generate stops from city configuration
-const mockStops: StopData[] = Object.entries(cityConfig.landmarks).map(
-  ([landmarkName, landmark], index) => {
-    // Find which routes pass through this landmark
-    const routes = Object.entries(cityConfig.transport.routes)
-      .filter(([_, route]) => route.stops.includes(landmarkName))
-      .map(([routeId, route]) => route.description);
+// Convert API routes to stops data
+const convertRoutesToStops = (routes: Route[]): StopData[] => {
+  const stopMap = new Map<string, StopData>();
 
-    return {
-      id: `ST-${String(index + 1).padStart(3, "0")}`,
-      name: landmarkName,
-      coordinates: { lat: landmark.lat, lng: landmark.lng },
-      routes: routes.length > 0 ? routes : ["General Stop"],
-    };
-  }
-);
-
-// Generate mock ETAs based on city configuration
-const mockETAs: Record<string, BusETA[]> = mockStops.reduce((acc, stop) => {
-  const etas: BusETA[] = [];
-
-  // Generate ETAs for each route that passes through this stop
-  stop.routes.forEach((routeDesc, index) => {
-    if (routeDesc !== "General Stop") {
-      etas.push({
-        busId: `BUS-${String(index + 1).padStart(3, "0")}`,
-        route: routeDesc,
-        eta: `${Math.floor(Math.random() * 15) + 3} min`,
-        timeToDestination: `${Math.floor(Math.random() * 30) + 15} min`,
+  routes.forEach((route) => {
+    if (route.route_stops) {
+      route.route_stops.forEach((stop) => {
+        const stopKey = stop.stop_name;
+        if (!stopMap.has(stopKey)) {
+          stopMap.set(stopKey, {
+            id: `ST-${stop.stop_id}`,
+            name: stop.stop_name,
+            coordinates: { lat: stop.latitude, lng: stop.longitude },
+            routes: [],
+          });
+        }
+        const stopData = stopMap.get(stopKey)!;
+        stopData.routes.push(route.description);
       });
     }
   });
 
-  acc[stop.id] = etas;
-  return acc;
-}, {} as Record<string, BusETA[]>);
+  return Array.from(stopMap.values());
+};
+
+// Generate mock ETAs based on real stops data
+const generateMockETAs = (stops: StopData[]): Record<string, BusETA[]> => {
+  return stops.reduce((acc, stop) => {
+    const etas: BusETA[] = [];
+
+    // Generate ETAs for each route that passes through this stop
+    stop.routes.forEach((routeDesc, index) => {
+      if (routeDesc !== "General Stop") {
+        etas.push({
+          busId: `BUS-${String(index + 1).padStart(3, "0")}`,
+          route: routeDesc,
+          eta: `${Math.floor(Math.random() * 15) + 3} min`,
+          timeToDestination: `${Math.floor(Math.random() * 30) + 15} min`,
+        });
+      }
+    });
+
+    acc[stop.id] = etas;
+    return acc;
+  }, {} as Record<string, BusETA[]>);
+};
 
 export function StopsTab() {
   const [pickupPoint, setPickupPoint] = useState("");
@@ -114,10 +124,35 @@ export function StopsTab() {
   const [intermediateStops, setIntermediateStops] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<BusETA[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [stops, setStops] = useState<StopData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load stops from API
+  useEffect(() => {
+    const loadStops = async () => {
+      try {
+        setIsLoading(true);
+        const apiRoutes = await routeService.getRoutes();
+        const stopsData = convertRoutesToStops(apiRoutes);
+        setStops(stopsData);
+      } catch (error) {
+        console.error("Failed to load stops:", error);
+        setStops([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStops();
+  }, []);
+
+  // Generate mock ETAs for current stops
+  const mockETAs = useMemo(() => generateMockETAs(stops), [stops]);
+
   // Suggestion dropdown state
   const locations = useMemo(() => {
-    const allStops = mockStops.map((s) => s.name);
-    const allRoutes = Array.from(new Set(mockStops.flatMap((s) => s.routes)));
+    const allStops = stops.map((s) => s.name);
+    const allRoutes = Array.from(new Set(stops.flatMap((s) => s.routes)));
     const allBusIds = Object.keys(busRouteMapping);
     const allBusNumbers = Object.values(busRouteMapping).map(
       (bus) => bus.busNumber
@@ -133,7 +168,7 @@ export function StopsTab() {
       ...allBusNumbers,
       ...allDriverNames,
     ];
-  }, []);
+  }, [stops]);
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
   const [pickupActiveIndex, setPickupActiveIndex] = useState(-1);
@@ -151,31 +186,41 @@ export function StopsTab() {
       idx: number;
     }> = [];
 
+    // Safety check for stops
+    if (!stops || stops.length === 0) {
+      return [];
+    }
+
     // Search stops
-    mockStops.forEach((stop) => {
-      const name = stop.name.toLowerCase();
-      if (name.includes(q)) {
-        suggestions.push({
-          text: stop.name,
-          category: "Bus Stop",
-          icon: "📍",
-          score: name.startsWith(q) ? 3 : 2,
-          idx: name.indexOf(q),
-        });
+    stops.forEach((stop) => {
+      if (stop && stop.name) {
+        const name = stop.name.toLowerCase();
+        if (name.includes(q)) {
+          suggestions.push({
+            text: stop.name,
+            category: "Bus Stop",
+            icon: "📍",
+            score: name.startsWith(q) ? 3 : 2,
+            idx: name.indexOf(q),
+          });
+        }
       }
     });
 
     // Search routes
-    Object.values(cityConfig.transport.routes).forEach((route) => {
-      const name = route.description.toLowerCase();
-      if (name.includes(q)) {
-        suggestions.push({
-          text: route.description,
-          category: "Route",
-          icon: "🚌",
-          score: name.startsWith(q) ? 3 : 2,
-          idx: name.indexOf(q),
-        });
+    const allRoutes = Array.from(new Set(stops.flatMap((s) => s.routes || [])));
+    allRoutes.forEach((routeDesc) => {
+      if (routeDesc) {
+        const name = routeDesc.toLowerCase();
+        if (name.includes(q)) {
+          suggestions.push({
+            text: routeDesc,
+            category: "Route",
+            icon: "🚌",
+            score: name.startsWith(q) ? 3 : 2,
+            idx: name.indexOf(q),
+          });
+        }
       }
     });
 
@@ -220,14 +265,14 @@ export function StopsTab() {
       .slice(0, 8); // Limit to 8 suggestions
   };
 
-  const pickupSuggestions = useMemo(
-    () => rankAndFilter(pickupPoint),
-    [pickupPoint, locations]
-  );
-  const destSuggestions = useMemo(
-    () => rankAndFilter(destination),
-    [destination, locations]
-  );
+  const pickupSuggestions = useMemo(() => {
+    if (isLoading) return [];
+    return rankAndFilter(pickupPoint);
+  }, [pickupPoint, locations, isLoading]);
+  const destSuggestions = useMemo(() => {
+    if (isLoading) return [];
+    return rankAndFilter(destination);
+  }, [destination, locations, isLoading]);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [selectedBus, setSelectedBus] = useState<BusETA | null>(null);
 
@@ -238,13 +283,102 @@ export function StopsTab() {
     const busDetails = getBusDetails(busId);
     if (!busDetails) return null;
 
-    // Find the route in cityConfig
-    const route = cityConfig.transport.routes[busDetails.routeId];
-    if (!route) return null;
+    // Find stops that belong to this bus's route
+    const routeStops = stops.filter((stop) =>
+      stop.routes.some((routeDesc) => {
+        // Try multiple matching strategies
+        const routeId = busDetails.routeId?.toLowerCase() || "";
+        const routeName = busDetails.routeName?.toLowerCase() || "";
+        const routeDescLower = routeDesc.toLowerCase();
 
-    // Generate stops based on the route
-    const stops = route.stops.map((stopName, index) => {
-      const landmark = cityConfig.landmarks[stopName];
+        // Match by route ID (500A, 600B, 700A)
+        if (routeDescLower.includes(routeId)) return true;
+
+        // Match by route name
+        if (routeDescLower.includes(routeName)) return true;
+
+        // Specific route matching for our 3 routes
+        if (
+          routeId === "500a" &&
+          routeDescLower.includes("majestic") &&
+          routeDescLower.includes("electronic city")
+        )
+          return true;
+        if (
+          routeId === "600b" &&
+          routeDescLower.includes("whitefield") &&
+          routeDescLower.includes("majestic")
+        )
+          return true;
+        if (
+          routeId === "700a" &&
+          routeDescLower.includes("majestic") &&
+          routeDescLower.includes("kempegowda airport")
+        )
+          return true;
+
+        // Match by route description parts
+        const routeParts = routeDescLower.split(" → ");
+        if (routeParts.length >= 2) {
+          const startPoint = routeParts[0].trim();
+          const endPoint = routeParts[1].trim();
+
+          // Check if route ID matches any part of the description
+          if (startPoint.includes(routeId) || endPoint.includes(routeId))
+            return true;
+        }
+
+        return false;
+      })
+    );
+
+    if (routeStops.length === 0) {
+      // Fallback: show a message that no route data is available
+      console.log(
+        "No route stops found for bus:",
+        busId,
+        "Route ID:",
+        busDetails.routeId
+      );
+      console.log(
+        "Available stops:",
+        stops.map((s) => ({ name: s.name, routes: s.routes }))
+      );
+
+      return {
+        busId,
+        route: busDetails.routeName || "Unknown Route",
+        currentStopIndex: 0,
+        nextStopIndex: 1,
+        stops: [
+          {
+            index: 1,
+            name: "No route data available",
+            eta: "N/A",
+            departure: undefined,
+            distanceFromSourceKm: 0,
+            platform: "N/A",
+            status: "On time" as StopStatus,
+            isCurrent: true,
+            isNext: false,
+          },
+        ],
+      };
+    }
+
+    // Generate stops based on the found route
+    const sortedRouteStops = routeStops.sort((a, b) => {
+      // Try to sort by route order if available
+      const aRoute = a.routes.find((r) =>
+        r.toLowerCase().includes(busDetails.routeId?.toLowerCase() || "")
+      );
+      const bRoute = b.routes.find((r) =>
+        r.toLowerCase().includes(busDetails.routeId?.toLowerCase() || "")
+      );
+      return aRoute?.localeCompare(bRoute || "") || 0;
+    });
+
+    const trackingStops = sortedRouteStops.map((stop, index) => {
       const currentTime = new Date();
       const baseTime = new Date(currentTime.getTime() + index * 5 * 60000); // 5 minutes per stop
 
@@ -260,7 +394,7 @@ export function StopsTab() {
 
       return {
         index: index + 1,
-        name: stopName,
+        name: stop.name,
         eta: baseTime.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
@@ -287,9 +421,9 @@ export function StopsTab() {
     return {
       busId,
       route: busDetails.routeName,
-      currentStopIndex: stops.findIndex((s) => s.isCurrent) + 1,
-      nextStopIndex: stops.findIndex((s) => s.isNext) + 1,
-      stops,
+      currentStopIndex: trackingStops.findIndex((s) => s.isCurrent) + 1,
+      nextStopIndex: trackingStops.findIndex((s) => s.isNext) + 1,
+      stops: trackingStops,
     };
   };
 
@@ -314,7 +448,7 @@ export function StopsTab() {
 
     // Simulate API call
     setTimeout(() => {
-      const matchingStop = mockStops.find((stop) =>
+      const matchingStop = stops.find((stop) =>
         stop.name.toLowerCase().includes(pickupPoint.toLowerCase())
       );
 
@@ -375,6 +509,24 @@ export function StopsTab() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <NavigationIcon className="w-16 h-16 mx-auto mb-4 text-primary" />
+          <h2 className="text-2xl font-bold mb-2">Stops & ETA</h2>
+          <p className="text-muted-foreground">
+            Plan your journey and get accurate arrival times
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-muted-foreground">Loading stops...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -427,7 +579,7 @@ export function StopsTab() {
                       e.preventDefault();
                       const choice = pickupSuggestions[pickupActiveIndex];
                       if (choice) {
-                        setPickupPoint(choice.text);
+                        setPickupPoint(choice);
                         setShowPickupSuggestions(false);
                       }
                     } else if (e.key === "Escape") {
@@ -499,7 +651,7 @@ export function StopsTab() {
                       e.preventDefault();
                       const choice = destSuggestions[destActiveIndex];
                       if (choice) {
-                        setDestination(choice.text);
+                        setDestination(choice);
                         setShowDestSuggestions(false);
                       }
                     } else if (e.key === "Escape") {

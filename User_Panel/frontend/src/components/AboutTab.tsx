@@ -1,16 +1,21 @@
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Badge } from "./ui/badge";
-import { 
-  Info, 
-  Target, 
-  Zap, 
-  MapPin, 
-  Clock, 
-  Users, 
-  Smartphone, 
-  Lightbulb, 
-  GraduationCap
+import {
+  Info,
+  Target,
+  Zap,
+  MapPin,
+  Clock,
+  Users,
+  Smartphone,
+  Lightbulb,
+  GraduationCap,
 } from "lucide-react";
 
 export function AboutTab() {
@@ -18,23 +23,26 @@ export function AboutTab() {
     {
       icon: MapPin,
       title: "Real-time GPS Tracking",
-      description: "Live bus locations updated every 5 seconds using driver's GPS coordinates"
+      description:
+        "Live bus locations updated every 5 seconds using driver's GPS coordinates",
     },
     {
       icon: Clock,
       title: "Precise ETA Calculations",
-      description: "Accurate arrival time predictions based on current location and traffic conditions"
+      description:
+        "Accurate arrival time predictions based on current location and traffic conditions",
     },
     {
       icon: Smartphone,
       title: "Responsive Design",
-      description: "Optimized for all devices with mobile-first approach and low bandwidth usage"
+      description:
+        "Optimized for all devices with mobile-first approach and low bandwidth usage",
     },
     {
       icon: Zap,
       title: "Dark Mode Support",
-      description: "Modern UI with seamless light/dark theme switching"
-    }
+      description: "Modern UI with seamless light/dark theme switching",
+    },
   ];
 
   const futureScope = [
@@ -43,7 +51,7 @@ export function AboutTab() {
     "Digital ticketing system with QR code integration",
     "Predictive ETA using machine learning algorithms",
     "Push notifications for bus arrivals and delays",
-    "Integration with city traffic management systems"
+    "Integration with city traffic management systems",
   ];
 
   const teamMembers = ["SB", "SR", "SY", "AR", "SD", "PS"];
@@ -55,8 +63,9 @@ export function AboutTab() {
         <Info className="w-16 h-16 mx-auto mb-4 text-primary" />
         <h2 className="text-2xl font-bold mb-2">About SmartTransit</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          A next-generation public transport tracking system designed for Smart India Hackathon 2024, 
-          addressing the challenges of small city transportation with cutting-edge technology.
+          A next-generation public transport tracking system designed for Smart
+          India Hackathon 2025, addressing the challenges of small city
+          transportation with cutting-edge technology.
         </p>
       </div>
 
@@ -70,13 +79,16 @@ export function AboutTab() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">
-            <strong>Smart India Hackathon 2024:</strong> Small City Real-time Public Transport Tracking System
+            <strong>Smart India Hackathon 2025:</strong> Small City Real-time
+            Public Transport Tracking System
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Many small cities lack efficient public transportation tracking systems, leading to passenger 
-            frustration, wasted time, and reduced adoption of public transport. Our solution provides 
-            real-time bus tracking, accurate ETAs, and occupancy information to make public transportation 
-            more reliable and user-friendly in smaller urban areas.
+            Many small cities lack efficient public transportation tracking
+            systems, leading to passenger frustration, wasted time, and reduced
+            adoption of public transport. Our solution provides real-time bus
+            tracking, accurate ETAs, and occupancy information to make public
+            transportation more reliable and user-friendly in smaller urban
+            areas.
           </p>
         </CardContent>
       </Card>
@@ -85,7 +97,9 @@ export function AboutTab() {
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Key Features</CardTitle>
-          <CardDescription>Technologies and capabilities that make SmartTransit unique</CardDescription>
+          <CardDescription>
+            Technologies and capabilities that make SmartTransit unique
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -96,7 +110,9 @@ export function AboutTab() {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">{feature.title}</h4>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {feature.description}
+                  </p>
                 </div>
               </div>
             ))}
@@ -111,12 +127,17 @@ export function AboutTab() {
             <Lightbulb className="w-5 h-5" />
             Future Scope & Enhancements
           </CardTitle>
-          <CardDescription>Planned features for the next phase of development</CardDescription>
+          <CardDescription>
+            Planned features for the next phase of development
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {futureScope.map((item, index) => (
-              <div key={index} className="flex items-center gap-2 p-3 bg-muted/20 rounded-lg">
+              <div
+                key={index}
+                className="flex items-center gap-2 p-3 bg-muted/20 rounded-lg"
+              >
                 <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                 <span className="text-sm">{item}</span>
               </div>
@@ -132,12 +153,18 @@ export function AboutTab() {
             <GraduationCap className="w-5 h-5" />
             Team Credits
           </CardTitle>
-          <CardDescription>Smart India Hackathon 2024 Team Members</CardDescription>
+          <CardDescription>
+            Smart India Hackathon 2025 Team Members
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {teamMembers.map((member, index) => (
-              <Badge key={index} variant="secondary" className="px-3 py-1 text-sm">
+              <Badge
+                key={index}
+                variant="secondary"
+                className="px-3 py-1 text-sm"
+              >
                 {member}
               </Badge>
             ))}
@@ -149,7 +176,9 @@ export function AboutTab() {
       <Card className="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Technical Implementation</CardTitle>
-          <CardDescription>Technologies and architecture powering SmartTransit</CardDescription>
+          <CardDescription>
+            Technologies and architecture powering SmartTransit
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -176,8 +205,9 @@ export function AboutTab() {
             <div>
               <h4 className="font-semibold mb-2">Optimization</h4>
               <p className="text-sm text-muted-foreground">
-                Designed for low bandwidth environments with optimized assets, efficient caching, 
-                and minimal data usage. Perfect for small cities with limited internet infrastructure.
+                Designed for low bandwidth environments with optimized assets,
+                efficient caching, and minimal data usage. Perfect for small
+                cities with limited internet infrastructure.
               </p>
             </div>
           </div>

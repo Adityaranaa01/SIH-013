@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -179,55 +179,56 @@ export function Dashboard({ onBack }: DashboardProps) {
                         </div>
                       </div>
                       <CardDescription className="text-sm">
-                        {busDetails ? busDetails.routeName : bus.route}
+                        {bus.route}
                       </CardDescription>
                       {busDetails && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          Driver: {busDetails.driverName} | Bus: {busDetails.busNumber}
+                          Driver: {busDetails.driverName} | Bus:{" "}
+                          {busDetails.busNumber}
                         </div>
                       )}
                     </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">ETA</p>
-                          <p className="font-semibold">{bus.eta}</p>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">ETA</p>
+                            <p className="font-semibold">{bus.eta}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Navigation className="w-4 h-4 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              To Destination
+                            </p>
+                            <p className="font-semibold">
+                              {bus.timeToDestination}
+                            </p>
+                          </div>
                         </div>
                       </div>
+
                       <div className="flex items-center gap-2">
-                        <Navigation className="w-4 h-4 text-primary" />
+                        <MapPin className="w-4 h-4 text-primary" />
                         <div>
                           <p className="text-sm text-muted-foreground">
-                            To Destination
+                            Next Stop
                           </p>
-                          <p className="font-semibold">
-                            {bus.timeToDestination}
-                          </p>
+                          <p className="font-medium text-sm">{bus.nextStop}</p>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Next Stop
-                        </p>
-                        <p className="font-medium text-sm">{bus.nextStop}</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => handleViewLocation(bus)}
-                      className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 group-hover:shadow-lg transition-all duration-300"
-                    >
-                      <MapPin className="w-4 h-4 mr-2" />
-                      Live Location
-                    </Button>
-                  </CardContent>
-                </Card>
+                      <Button
+                        onClick={() => handleViewLocation(bus)}
+                        className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 group-hover:shadow-lg transition-all duration-300"
+                      >
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Live Location
+                      </Button>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>

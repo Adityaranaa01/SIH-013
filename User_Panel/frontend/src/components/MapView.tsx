@@ -1,5 +1,5 @@
 // src/components/MapView.tsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -90,14 +90,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
   );
   const watchIdRef = useRef<number | null>(null);
 
-  // Update selectedBus when real-time data changes for the same bus
-  useEffect(() => {
-    const updatedBus = allBuses.find(b => b.id === selectedBus.id);
-    if (updatedBus) {
-      setSelectedBus(updatedBus);
-    }
-  }, [allBuses, selectedBus.id]);
-
   useEffect(() => {
     const interval = setInterval(() => {}, 5000);
     return () => clearInterval(interval);
@@ -135,7 +127,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
     let positionUpdateCount = 0;
     let bestAccuracy = Infinity;
     let fallbackPosition: LatLngWithAccuracy | null = null;
-    let geolocationTimeout: number | null = null;
+    let geolocationTimeout: NodeJS.Timeout | null = null;
 
     // Set a timeout to handle cases where geolocation takes too long
     geolocationTimeout = setTimeout(() => {
@@ -375,7 +367,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             }
 
             // If this position is significantly better, accept it
-            if (prevPos.accuracy && pos.coords.accuracy < prevPos.accuracy * 0.7) {
+            if (pos.coords.accuracy < prevPos.accuracy * 0.7) {
               console.log(
                 "Updating to better position. New accuracy:",
                 pos.coords.accuracy,
@@ -398,7 +390,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
             // If current position is very poor (>1000m) and new one is better, accept it
             if (
-              prevPos.accuracy && prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
+              prevPos.accuracy > POOR_ACCURACY_THRESHOLD &&
               pos.coords.accuracy < prevPos.accuracy
             ) {
               console.log(
@@ -461,7 +453,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
             "m)"
           );
           // If we have a position but it's very poor, show that we're still trying to improve
-          if (userPos && userPos.accuracy && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
+          if (userPos && userPos.accuracy > POOR_ACCURACY_THRESHOLD) {
             setLocationStatus(
               `Location found but accuracy is poor (±${Math.round(
                 userPos.accuracy
@@ -471,7 +463,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         }
 
         // After 10 position updates, if accuracy is still very poor, try restarting with different settings
-        if (positionUpdateCount >= 10 && userPos && userPos.accuracy && userPos.accuracy > 10000) {
+        if (positionUpdateCount >= 10 && userPos && userPos.accuracy > 10000) {
           console.log(
             "Accuracy still very poor after 10 updates, trying GPS-only mode"
           );
@@ -490,7 +482,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 pos.coords.accuracy,
                 "m"
               );
-              if (userPos.accuracy && pos.coords.accuracy < userPos.accuracy) {
+              if (pos.coords.accuracy < userPos.accuracy) {
                 setUserPos({
                   lat: pos.coords.latitude,
                   lng: pos.coords.longitude,
@@ -518,9 +510,10 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
         if (positionUpdateCount >= 10 && !userPos && fallbackPosition) {
           console.log("Using fallback position after 10 updates");
           setUserPos(fallbackPosition);
-          const accuracy = (fallbackPosition as LatLngWithAccuracy).accuracy || 0;
           setLocationStatus(
-            `Using fallback location. Accuracy: ±${Math.round(accuracy)}m`
+            `Using fallback location. Accuracy: ±${Math.round(
+              fallbackPosition.accuracy
+            )}m`
           );
         }
       },
@@ -716,11 +709,14 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 <MapController center={selectedBusPosition} />
 
                 <Marker
-                  key={`selected-bus-${selectedBus.id}-${selectedBus.currentLocation.lat}-${selectedBus.currentLocation.lng}`}
                   position={selectedBusPosition}
                   icon={L.divIcon({
                     className: "custom-marker-selected",
-                    html: `<div class="w-4 h-4 rounded-full bg-blue-500 ring-4 ring-blue-200 shadow-lg"></div>`,
+                    html: `<div class="w-4 h-4 rounded-full ring-4 ring-red-200 shadow-lg" style="background-color: ${
+                      selectedBus.isActive
+                        ? "#ef4444"
+                        : selectedBus.routeColor || "#1f77b4"
+                    }"></div>`,
                     iconSize: [16, 16],
                     iconAnchor: [8, 8],
                   })}
@@ -741,14 +737,16 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                   .filter((b) => b.id !== selectedBus.id)
                   .map((bus) => (
                     <Marker
-                      key={`bus-${bus.id}-${bus.currentLocation.lat}-${bus.currentLocation.lng}`}
+                      key={bus.id}
                       position={[
                         bus.currentLocation.lat,
                         bus.currentLocation.lng,
                       ]}
                       icon={L.divIcon({
                         className: "custom-marker-dimmed",
-                        html: `<div class="w-3 h-3 rounded-full bg-gray-400 opacity-60"></div>`,
+                        html: `<div class="w-3 h-3 rounded-full opacity-60" style="background-color: ${
+                          bus.isActive ? "#ef4444" : bus.routeColor || "#6b7280"
+                        }"></div>`,
                         iconSize: [12, 12],
                         iconAnchor: [6, 6],
                       })}
@@ -920,8 +918,8 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
                 </CardHeader>
                 <CardContent className="space-y-2 map-legend-content">
                   <div className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-200 map-legend-icon"></div>
-                    <span>Selected Bus (Active)</span>
+                    <div className="w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-200 map-legend-icon"></div>
+                    <span>Live Buses (Active)</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <div className="w-3 h-3 rounded-full bg-gray-400 opacity-60 map-legend-icon"></div>
@@ -1000,7 +998,7 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
               )}
 
               {/* WiFi Positioning Warning - show if accuracy is very poor */}
-              {userPos && userPos.accuracy && userPos.accuracy > 10000 && (
+              {userPos && userPos.accuracy > 10000 && (
                 <Badge
                   variant="outline"
                   className="absolute top-28 right-4 bg-card/90 backdrop-blur-sm z-[9999] pointer-events-auto max-w-xs"
@@ -1018,7 +1016,6 @@ export function MapView({ bus, onBack, allBuses }: MapViewProps) {
 
               {/* Force GPS Button - show if location exists but accuracy is poor */}
               {userPos &&
-                userPos.accuracy &&
                 userPos.accuracy > 1000 &&
                 userPos.accuracy <= 10000 && (
                   <Badge

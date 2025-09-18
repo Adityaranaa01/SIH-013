@@ -1,36 +1,85 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LandingPage } from "./components/LandingPage";
 import { Dashboard } from "./components/Dashboard";
 import { DriverPage } from "./components/DriverPage";
-import 'leaflet/dist/leaflet.css';
+import "leaflet/dist/leaflet.css";
 
 type AppState = "landing" | "user" | "driver";
 
-export default function App() {
+// Main App component with routing
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [appState, setAppState] = useState<AppState>("landing");
 
-  const renderCurrentPage = () => {
-    switch (appState) {
-      case "user":
-        return <Dashboard onBack={() => setAppState("landing")} />;
-      case "driver":
-        return <DriverPage onBack={() => setAppState("landing")} />;
-      default:
-        return (
-          <LandingPage 
-            onUserSelect={() => setAppState("user")} 
-            onDriverSelect={() => setAppState("driver")} 
-          />
-        );
+  // Determine app state based on current URL
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === "/user" || path === "/dashboard") {
+      setAppState("user");
+    } else if (path === "/driver") {
+      setAppState("driver");
+    } else {
+      setAppState("landing");
+    }
+  }, [location.pathname]);
+
+  // Update URL when app state changes
+  const handleStateChange = (newState: AppState) => {
+    setAppState(newState);
+    if (newState === "user") {
+      navigate("/user");
+    } else if (newState === "driver") {
+      navigate("/driver");
+    } else {
+      navigate("/");
     }
   };
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="smarttransit-theme">
-      <div className="min-h-screen bg-background text-foreground">
-        {renderCurrentPage()}
-      </div>
-    </ThemeProvider>
+    <div className="min-h-screen bg-background text-foreground">
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <LandingPage
+              onUserSelect={() => handleStateChange("user")}
+              onDriverSelect={() => handleStateChange("driver")}
+            />
+          }
+        />
+        <Route
+          path="/user"
+          element={<Dashboard onBack={() => handleStateChange("landing")} />}
+        />
+        <Route
+          path="/driver"
+          element={<DriverPage onBack={() => handleStateChange("landing")} />}
+        />
+        <Route
+          path="/dashboard"
+          element={<Dashboard onBack={() => handleStateChange("landing")} />}
+        />
+      </Routes>
+    </div>
+  );
+}
+
+// Main App component with Router and Theme Provider
+export default function App() {
+  return (
+    <Router>
+      <ThemeProvider defaultTheme="light" storageKey="smarttransit-theme">
+        <AppContent />
+      </ThemeProvider>
+    </Router>
   );
 }

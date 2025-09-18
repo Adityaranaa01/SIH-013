@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import io, { Socket } from "socket.io-client";
 
-const BACKEND_URL = (import.meta as any)?.env?.VITE_SOCKET_URL || "http://localhost:5000";
+const BACKEND_URL = "http://localhost:5000";
 
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);

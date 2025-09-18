@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,6 +9,7 @@ import {
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MapPin, Clock, Bus, Users, Navigation, Star } from "lucide-react";
+import { routeService, Route } from "../services/routeService";
 
 interface StopInfo {
   id: string;
@@ -30,126 +31,49 @@ interface RouteData {
   stops: StopInfo[];
 }
 
-// No fallback: routes are fetched from the admin API
+// Convert API Route to RouteData format
+const convertRouteToRouteData = (route: Route): RouteData => ({
+  id: `RT-${route.route_id}`,
+  name: route.route_name,
+  startPoint: route.description.split(" → ")[0] || "Start",
+  endPoint: route.description.split(" → ")[1] || "End",
+  totalStops: route.route_stops?.length || 0,
+  activeBuses: Math.floor(Math.random() * 3) + 1, // Random 1-3 active buses
+  avgTime: `${Math.floor(Math.random() * 30) + 30} min`, // Random 30-60 min
+  status: route.is_active ? "active" : "inactive",
+  stops: (route.route_stops || []).map((stop, index) => ({
+    id: `ST-${route.route_id}-${stop.stop_id}`,
+    name: stop.stop_name,
+    coordinates: { lat: stop.latitude, lng: stop.longitude },
+    estimatedTime: `${index * 5} min`,
+    amenities: stop.is_major_stop ? ["Major Stop", "Bus Stop"] : ["Bus Stop"],
+  })),
+});
 
 export function RoutesTab() {
   const [selectedRoute, setSelectedRoute] = useState<RouteData | null>(null);
   const [routes, setRoutes] = useState<RouteData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Determine Admin API base URL with sensible fallbacks
-  const adminApiBases = useMemo(() => {
-    const fromEnv = (import.meta as any)?.env?.VITE_ADMIN_API_BASE_URL as string | undefined;
-    // Try env first; otherwise try common dev ports used in this repo
-    const candidates = [fromEnv, "http://localhost:3011", "http://localhost:3001"]
-      .filter(Boolean) as string[];
-    return Array.from(new Set(candidates));
-  }, []);
-
-  // Fetch routes list from admin API
+  // Load routes from API
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      let lastErr: any = null;
-      for (const base of adminApiBases) {
-        try {
-          const res = await fetch(`${base}/routes`);
-          if (!res.ok) throw new Error(await res.text());
-          const data: Array<{
-            routeId: string;
-            start: string;
-            end: string;
-            name?: string | null;
-            stopsCount?: number;
-          }> = await res.json();
-
-          const mapped: RouteData[] = data.map((r) => ({
-            id: r.routeId,
-            name: r.name || r.routeId,
-            startPoint: r.start,
-            endPoint: r.end,
-            totalStops: r.stopsCount ?? 0,
-            activeBuses: 0,
-            avgTime: "-",
-            status: "active",
-            stops: [],
-          }));
-
-          if (!cancelled) {
-            setRoutes(mapped);
-            setError(null);
-          }
-          lastErr = null;
-          break;
-        } catch (e: any) {
-          lastErr = e;
-        }
+    const loadRoutes = async () => {
+      try {
+        setIsLoading(true);
+        const apiRoutes = await routeService.getRoutes();
+        const routeData = apiRoutes.map(convertRouteToRouteData);
+        setRoutes(routeData);
+      } catch (error) {
+        console.error("Failed to load routes:", error);
+        // Fallback to empty array if API fails
+        setRoutes([]);
+      } finally {
+        setIsLoading(false);
       }
-      if (!cancelled) {
-        if (lastErr) setError("Failed to load routes from admin API.");
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
     };
-  }, [adminApiBases]);
 
-  // When user selects a route, fetch detailed stops from admin API if available
-  const handleSelectRoute = async (route: RouteData) => {
-    // If we already have stops (from prior fetch), just open
-    if (route.stops && route.stops.length > 0) return setSelectedRoute(route);
-    try {
-      // Try all bases for details as well
-      let detailRes: Response | null = null;
-      let lastErr: any = null;
-      for (const base of adminApiBases) {
-        try {
-          const res = await fetch(`${base}/routes/${encodeURIComponent(route.id)}`);
-          if (!res.ok) throw new Error(await res.text());
-          detailRes = res;
-          lastErr = null;
-          break;
-        } catch (e: any) {
-          lastErr = e;
-        }
-      }
-      if (!detailRes) throw lastErr || new Error("Route detail not available");
-      const detail: {
-        routeId: string;
-        start: string;
-        end: string;
-        name?: string | null;
-        stops: Array<{ stopNumber: number; name: string; lat: number; long: number }>;
-      } = await detailRes.json();
-
-      const stops: StopInfo[] = detail.stops.map((s) => ({
-        id: `ST-${detail.routeId}-${s.stopNumber}`,
-        name: s.name,
-        coordinates: { lat: s.lat, lng: s.long },
-        estimatedTime: `${s.stopNumber * 5} min`,
-        amenities: ["Bus Stop"],
-      }));
-
-      const enriched: RouteData = {
-        id: detail.routeId,
-        name: detail.name || route.name,
-        startPoint: detail.start,
-        endPoint: detail.end,
-        totalStops: stops.length,
-        activeBuses: 0,
-        avgTime: "-",
-        status: "active",
-        stops,
-      };
-      setSelectedRoute(enriched);
-    } catch {
-      setError("Failed to load route details.");
-    }
-  };
+    loadRoutes();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -369,67 +293,76 @@ export function RoutesTab() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading routes…</div>
-      ) : routes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {routes.map((route) => (
-          <Card
-            key={route.id}
-            className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
-            onClick={() => handleSelectRoute(route)}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">{route.name}</CardTitle>
-                <Badge className={getStatusColor(route.status)}>
-                  {getStatusIcon(route.status)}
-                  <span className="ml-1 capitalize">{route.status}</span>
-                </Badge>
-              </div>
-              <CardDescription>
-                {route.startPoint} → {route.endPoint}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>{route.totalStops} stops</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          <div className="col-span-full text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading routes...</p>
+          </div>
+        ) : routes.length === 0 ? (
+          <div className="col-span-full text-center py-8">
+            <p className="text-gray-600">No routes available</p>
+          </div>
+        ) : (
+          routes.map((route) => (
+            <Card
+              key={route.id}
+              className="group hover:shadow-lg transition-all duration-300 cursor-pointer"
+              onClick={() => setSelectedRoute(route)}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">{route.name}</CardTitle>
+                  <Badge className={getStatusColor(route.status)}>
+                    {getStatusIcon(route.status)}
+                    <span className="ml-1 capitalize">{route.status}</span>
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Bus className="w-4 h-4 text-muted-foreground" />
-                  <span>{route.activeBuses} active</span>
+                <CardDescription>
+                  {route.startPoint} → {route.endPoint}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{route.totalStops} stops</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Bus className="w-4 h-4 text-muted-foreground" />
+                    <span>{route.activeBuses} active</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span>{route.avgTime}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span>High demand</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span>{route.avgTime}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-sm font-medium">4.2</span>
+                    <span className="text-xs text-muted-foreground">(128)</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRoute(route);
+                    }}
+                  >
+                    View Details
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>High demand</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                  <span className="text-sm font-medium">4.2</span>
-                  <span className="text-xs text-muted-foreground">(128)</span>
-                </div>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 text-muted-foreground">No routes found.</div>
-      )}
-      {error && (
-        <div className="text-center text-sm text-muted-foreground">{error}</div>
-      )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 }

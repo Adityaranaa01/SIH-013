@@ -1,28 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-const ThemeContext = createContext({ theme: 'light', setTheme: () => {} })
+const ThemeContext = createContext({ theme: 'light', setTheme: () => { } })
 
 export function useTheme() {
   return useContext(ThemeContext)
 }
 
 export function ThemeProvider({ defaultTheme = 'light', storageKey = 'smarttransit-theme', children }) {
-  const [theme, setTheme] = useState(defaultTheme)
-
-  useEffect(() => {
+  const [theme, setTheme] = useState(() => {
+    // Initialize theme from localStorage on first render
     const stored = localStorage.getItem(storageKey)
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored)
-      document.documentElement.classList.toggle('dark', stored === 'dark')
-    } else {
-      document.documentElement.classList.toggle('dark', defaultTheme === 'dark')
-    }
-  }, [])
+    return (stored === 'light' || stored === 'dark') ? stored : defaultTheme
+  })
 
   useEffect(() => {
-    localStorage.setItem(storageKey, theme)
+    // Apply theme to document and save to localStorage when theme changes
     document.documentElement.classList.toggle('dark', theme === 'dark')
-  }, [theme])
+    localStorage.setItem(storageKey, theme)
+  }, [theme, storageKey])
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

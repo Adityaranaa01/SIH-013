@@ -5,7 +5,7 @@ import { supabase } from '../config/database.js';
  * GPS location tracking service
  */
 export class LocationService {
-  
+
   /**
    * Save GPS location data
    * @param {Object} locationData - GPS location data
@@ -183,10 +183,16 @@ export class LocationService {
    */
   static async getActiveLocations() {
     try {
-      // First get all active trips
+      // Get active trips with driver and route information
       const { data: activeTrips, error: tripsError } = await supabase
         .from('trips')
-        .select('trip_id, driver_id, bus_number')
+        .select(`
+          trip_id, 
+          driver_id, 
+          bus_number,
+          drivers(assigned_route),
+          buses(assigned_route)
+        `)
         .eq('status', 'active');
 
       if (tripsError) {
@@ -201,15 +207,51 @@ export class LocationService {
       }
 
       // Get latest location for each active trip
-      const locationPromises = activeTrips.map(trip => 
+      const locationPromises = activeTrips.map(trip =>
         this.getLatestLocation(trip.trip_id)
       );
 
       const locationResults = await Promise.all(locationPromises);
-      
+
+      // Get route details for all assigned routes
+      // Prioritize bus assigned_route over driver assigned_route
+      const routeIds = [...new Set(activeTrips.map(trip =>
+        trip.buses?.assigned_route || trip.drivers?.assigned_route
+      ).filter(Boolean))];
+      const routeDetails = {};
+
+      if (routeIds.length > 0) {
+        const { data: routes, error: routesError } = await supabase
+          .from('routes')
+          .select('route_id, route_name, description, color')
+          .in('route_id', routeIds);
+
+        if (!routesError && routes) {
+          routes.forEach(route => {
+            routeDetails[route.route_id] = route;
+          });
+        }
+      }
+
       const activeLocations = locationResults
         .filter(result => result.success && result.data)
-        .map(result => result.data);
+        .map((result, index) => {
+          const trip = activeTrips[index];
+          const location = result.data;
+          // Prioritize bus assigned_route over driver assigned_route
+          const assignedRoute = trip.buses?.assigned_route || trip.drivers?.assigned_route;
+          const route = routeDetails[assignedRoute];
+
+          return {
+            ...location,
+            routeId: assignedRoute,
+            routeName: route?.route_name || `Route ${assignedRoute}`,
+            routeDescription: route?.description || 'Live Tracking',
+            routeColor: route?.color || '#1f77b4',
+            busNumber: trip.bus_number,
+            driverId: trip.driver_id
+          };
+        });
 
       return {
         success: true,

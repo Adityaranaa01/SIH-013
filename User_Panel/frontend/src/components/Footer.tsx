@@ -1,5 +1,9 @@
-import React from "react";
-import { Navigation as NavigationIcon, Mail, Phone, MapPin } from "lucide-react";
+import {
+  Navigation as NavigationIcon,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
 
 export function Footer() {
   return (
@@ -10,14 +14,16 @@ export function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <NavigationIcon className="h-6 w-6 text-blue-600" />
-              <span className="text-xl font-medium text-gray-900">SmartTransit</span>
+              <span className="text-xl font-medium text-gray-900">
+                SmartTransit
+              </span>
             </div>
             <p className="text-gray-600 mb-4 max-w-md">
-              Real-time public transport tracking system for small cities. 
+              Real-time public transport tracking system for small cities.
               Making public transportation more reliable and accessible.
             </p>
             <p className="text-sm text-gray-500">
-              Developed for Smart India Hackathon 2024
+              Developed for Smart India Hackathon 2025
             </p>
           </div>
 
@@ -55,7 +61,7 @@ export function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500">
-              © 2024 SmartTransit. Built for Smart India Hackathon.
+              © 2025 SmartTransit. Built for Smart India Hackathon.
             </p>
             <div className="flex gap-6">
               <span className="text-sm text-gray-500">Privacy Policy</span>

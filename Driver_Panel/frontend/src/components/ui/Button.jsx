@@ -10,6 +10,7 @@ export function Button({ variant = 'default', size = 'md', className = '', child
     gradient: 'gradient-cta text-white'
   };
   const sizes = {
+    sm: 'btn-sm',
     md: '',
     lg: 'btn-lg'
   };

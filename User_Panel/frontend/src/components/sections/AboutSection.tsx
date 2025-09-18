@@ -4,10 +4,13 @@ export function AboutSection() {
   return (
     <div className="space-y-12">
       <section className="text-center py-12">
-        <h1 className="text-3xl mb-6 text-gray-900">About Smart Transit System</h1>
+        <h1 className="text-3xl mb-6 text-gray-900">
+          About Smart Transit System
+        </h1>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-          Empowering small cities with real-time public transport tracking technology to improve 
-          commuter experience and transportation efficiency.
+          Empowering small cities with real-time public transport tracking
+          technology to improve commuter experience and transportation
+          efficiency.
         </p>
       </section>
 
@@ -16,12 +19,14 @@ export function AboutSection() {
           <div>
             <h2 className="text-2xl mb-6 text-gray-900">Our Mission</h2>
             <p className="text-gray-600 mb-4">
-              To bridge the technology gap in small city public transportation by providing 
-              affordable, reliable, and user-friendly real-time tracking solutions.
+              To bridge the technology gap in small city public transportation
+              by providing affordable, reliable, and user-friendly real-time
+              tracking solutions.
             </p>
             <p className="text-gray-600">
-              We believe every commuter, regardless of their city size, deserves access to 
-              modern transportation information systems that make daily travel more predictable and efficient.
+              We believe every commuter, regardless of their city size, deserves
+              access to modern transportation information systems that make
+              daily travel more predictable and efficient.
             </p>
           </div>
           <Card className="bg-gray-50 border-gray-200">
@@ -51,34 +56,39 @@ export function AboutSection() {
       </section>
 
       <section className="py-12">
-        <h2 className="text-2xl text-center mb-8 text-gray-900">Why Small Cities Need This</h2>
+        <h2 className="text-2xl text-center mb-8 text-gray-900">
+          Why Small Cities Need This
+        </h2>
         <div className="grid md:grid-cols-3 gap-8">
           <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <h3 className="text-lg mb-3 text-gray-900">Limited Resources</h3>
               <p className="text-gray-600">
-                Small cities often lack the budget for expensive transport management systems. 
-                Our solution is designed to be cost-effective and easy to implement.
+                Small cities often lack the budget for expensive transport
+                management systems. Our solution is designed to be
+                cost-effective and easy to implement.
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <h3 className="text-lg mb-3 text-gray-900">Growing Population</h3>
               <p className="text-gray-600">
-                As small cities expand, efficient public transport becomes crucial. Real-time 
-                tracking helps manage increasing passenger demand effectively.
+                As small cities expand, efficient public transport becomes
+                crucial. Real-time tracking helps manage increasing passenger
+                demand effectively.
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white border-gray-200">
             <CardContent className="p-6">
               <h3 className="text-lg mb-3 text-gray-900">Digital Adoption</h3>
               <p className="text-gray-600">
-                Citizens expect modern digital services. Providing real-time transport info 
-                helps cities meet these expectations and improve satisfaction.
+                Citizens expect modern digital services. Providing real-time
+                transport info helps cities meet these expectations and improve
+                satisfaction.
               </p>
             </CardContent>
           </Card>
@@ -86,10 +96,13 @@ export function AboutSection() {
       </section>
 
       <section className="py-12 bg-blue-50 rounded-lg text-center">
-        <h2 className="text-2xl mb-4 text-gray-900">Smart India Hackathon 2024</h2>
+        <h2 className="text-2xl mb-4 text-gray-900">
+          Smart India Hackathon 2025
+        </h2>
         <p className="text-gray-600 mb-6 max-w-3xl mx-auto">
-          This project is developed for Smart India Hackathon 2024, focusing on solving real-world 
-          problems in small city public transportation through innovative technology solutions.
+          This project is developed for Smart India Hackathon 2025, focusing on
+          solving real-world problems in small city public transportation
+          through innovative technology solutions.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
           <div>
