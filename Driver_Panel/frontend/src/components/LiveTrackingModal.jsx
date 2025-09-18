@@ -65,12 +65,28 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                     return prevLocation;
                 }
                 console.log('📍 New location received via realTimeLocation prop, updating');
-                return {
+
+                const newLocation = {
                     lat: realTimeLocation.lat,
                     lng: realTimeLocation.lng,
                     timestamp: realTimeLocation.timestamp,
                     accuracy: realTimeLocation.accuracy
                 };
+
+                // Add to location history for path visualization
+                setLocationHistory(prev => {
+                    const lastLocation = prev[prev.length - 1];
+                    if (!lastLocation ||
+                        lastLocation.lat !== newLocation.lat ||
+                        lastLocation.lng !== newLocation.lng) {
+                        console.log('📍 Adding new location to history for path via realTimeLocation');
+                        const newHistory = [...prev, newLocation];
+                        return newHistory.length > 50 ? newHistory.slice(-50) : newHistory;
+                    }
+                    return prev;
+                });
+
+                return newLocation;
             });
 
             setLastUpdate(new Date(realTimeLocation.timestamp));
@@ -145,6 +161,20 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                         return prevLocation;
                     }
                     console.log('📍 New location received via bus-location-update, updating');
+
+                    // Add to location history for path visualization
+                    setLocationHistory(prev => {
+                        const lastLocation = prev[prev.length - 1];
+                        if (!lastLocation ||
+                            lastLocation.lat !== newLocation.lat ||
+                            lastLocation.lng !== newLocation.lng) {
+                            console.log('📍 Adding new location to history for path');
+                            const newHistory = [...prev, newLocation];
+                            return newHistory.length > 50 ? newHistory.slice(-50) : newHistory;
+                        }
+                        return prev;
+                    });
+
                     return newLocation;
                 });
 
@@ -173,6 +203,20 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                         return prevLocation;
                     }
                     console.log('📍 New location received, updating');
+
+                    // Add to location history for path visualization
+                    setLocationHistory(prev => {
+                        const lastLocation = prev[prev.length - 1];
+                        if (!lastLocation ||
+                            lastLocation.lat !== newLocation.lat ||
+                            lastLocation.lng !== newLocation.lng) {
+                            console.log('📍 Adding new location to history for path');
+                            const newHistory = [...prev, newLocation];
+                            return newHistory.length > 50 ? newHistory.slice(-50) : newHistory;
+                        }
+                        return prev;
+                    });
+
                     return newLocation;
                 });
 
@@ -252,11 +296,6 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
 
     const formatLastUpdated = () => {
         if (!lastUpdate) return 'Never';
-        const now = new Date();
-        const diff = Math.floor((now - lastUpdate) / 1000);
-
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
         return lastUpdate.toLocaleTimeString();
     };
 
@@ -364,7 +403,7 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                             </>
                                         )}
 
-                                        {/* Movement Path */}
+                                        {/* Movement Path - Red streak like user panel */}
                                         {locationHistory.length > 1 && (
                                             <Polyline
                                                 positions={locationHistory.map(loc => [loc.lat, loc.lng])}
