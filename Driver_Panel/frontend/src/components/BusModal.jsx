@@ -50,20 +50,20 @@ const BusModal = ({ isOpen, onClose, onSave, bus }) => {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-md">
-                <DialogHeader>
+                <DialogHeader className="relative">
                     <div className="flex items-center justify-between">
                         <DialogTitle>
                             {bus ? 'Edit Bus' : 'Add New Bus'}
                         </DialogTitle>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 ml-auto"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
                     </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="absolute top-1/2 right-0 -translate-y-1/2 h-12 w-12 p-0 text-gray-400 hover:text-gray-600 rounded-l-lg rounded-r-none"
+                    >
+                        <X className="h-8 w-8" />
+                    </Button>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">

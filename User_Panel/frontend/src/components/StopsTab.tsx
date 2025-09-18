@@ -124,6 +124,7 @@ export function StopsTab() {
   const [intermediateStops, setIntermediateStops] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<BusETA[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [stops, setStops] = useState<StopData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -445,6 +446,7 @@ export function StopsTab() {
     if (!pickupPoint.trim()) return;
 
     setIsSearching(true);
+    setHasSearched(true);
 
     // Simulate API call
     setTimeout(() => {
@@ -455,16 +457,24 @@ export function StopsTab() {
       if (matchingStop && mockETAs[matchingStop.id]) {
         setSearchResults(mockETAs[matchingStop.id]);
       } else {
-        // Show closest available bus
-        setSearchResults([
-          {
-            busId: "BUS-003",
-            route: "AIIMS → India Gate",
-            eta: "14 min",
-            timeToDestination: "35 min",
-            isClosest: true,
-          },
-        ]);
+        // Try to find buses that might be related to the search query
+        const searchQuery = pickupPoint.toLowerCase();
+        const relatedBuses = searchBuses(pickupPoint);
+
+        if (relatedBuses.length > 0) {
+          // Show related buses found
+          const busResults = relatedBuses.map((bus, index) => ({
+            busId: bus.busId,
+            route: bus.routeName,
+            eta: `${Math.floor(Math.random() * 15) + 3} min`,
+            timeToDestination: `${Math.floor(Math.random() * 30) + 15} min`,
+            isClosest: index === 0,
+          }));
+          setSearchResults(busResults);
+        } else {
+          // No buses found matching the search
+          setSearchResults([]);
+        }
       }
       setIsSearching(false);
     }, 1000);
@@ -559,6 +569,11 @@ export function StopsTab() {
                     setPickupPoint(e.target.value);
                     setShowPickupSuggestions(true);
                     setPickupActiveIndex(-1);
+                    // Reset search state when user starts typing
+                    if (hasSearched) {
+                      setHasSearched(false);
+                      setSearchResults([]);
+                    }
                   }}
                   className="pl-10"
                   onFocus={() => setShowPickupSuggestions(true)}
@@ -818,6 +833,33 @@ export function StopsTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* No Results Message */}
+      {!isSearching &&
+        hasSearched &&
+        searchResults.length === 0 &&
+        pickupPoint.trim() && (
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-muted/50 rounded-full flex items-center justify-center">
+                  <Bus className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">No buses found</h3>
+                  <p className="text-muted-foreground">
+                    No buses are available for "{pickupPoint}". Try searching
+                    for a different location or check back later.
+                  </p>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p>Available routes: 500A, 600B, 700A</p>
+                  <p>Try searching by route number, stop name, or bus ID</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Track Bus Modal */}
       <Dialog open={isTrackModalOpen} onOpenChange={setIsTrackModalOpen}>

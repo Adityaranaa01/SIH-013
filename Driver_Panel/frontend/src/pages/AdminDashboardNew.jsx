@@ -797,13 +797,15 @@ const AdminDashboardNew = () => {
     };
 
     return (
-        <AdminLayout
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            currentAdmin={currentAdmin}
-            onLogout={handleLogout}
-        >
-            {renderCurrentPage()}
+        <>
+            <AdminLayout
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                currentAdmin={currentAdmin}
+                onLogout={handleLogout}
+            >
+                {renderCurrentPage()}
+            </AdminLayout>
 
             {/* Route Form Modal */}
             <RouteFormModal
@@ -863,7 +865,7 @@ const AdminDashboardNew = () => {
                 type={confirmModal.type}
                 isLoading={confirmModal.isLoading}
             />
-        </AdminLayout>
+        </>
     );
 };
 

@@ -22,21 +22,21 @@ const AssignRouteModal = ({ isOpen, onClose, onAssign, bus, routes }) => {
     return (
         <Dialog open={isOpen} onOpenChange={handleClose}>
             <DialogContent className="max-w-md">
-                <DialogHeader>
+                <DialogHeader className="relative">
                     <div className="flex items-center justify-between">
                         <DialogTitle className="flex items-center gap-2">
                             <Route className="h-5 w-5" />
                             Assign Bus to Route
                         </DialogTitle>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClose}
-                            className="text-gray-400 hover:text-gray-600 ml-auto"
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
                     </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClose}
+                        className="absolute top-1/2 right-0 -translate-y-1/2 h-12 w-12 p-0 text-gray-400 hover:text-gray-600 rounded-l-lg rounded-r-none"
+                    >
+                        <X className="h-8 w-8" />
+                    </Button>
                 </DialogHeader>
 
                 <div className="px-6 pb-6">

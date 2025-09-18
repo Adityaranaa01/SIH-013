@@ -26,9 +26,9 @@ const RouteDetailsModal = ({ isOpen, onClose, route, onEdit }) => {
                         variant="ghost"
                         size="sm"
                         onClick={onClose}
-                        className="absolute top-2 right-2 h-8 w-8 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        className="absolute top-1/2 right-0 -translate-y-1/2 h-12 w-12 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-l-lg rounded-r-none"
                     >
-                        <X className="h-6 w-6" />
+                        <X className="h-8 w-8" />
                     </Button>
                 </DialogHeader>
 
