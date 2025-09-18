@@ -46,6 +46,7 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         return () => {
             if (socketRef.current) {
                 socketRef.current.disconnect();
+                socketRef.current = null;
             }
         };
     }, [isOpen, trip]);
@@ -54,11 +55,30 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
     useEffect(() => {
         if (realTimeLocation) {
             console.log('📍 LiveTrackingModal received real-time location update:', realTimeLocation);
-            updateBusLocation(realTimeLocation);
+
+            // Only update if the location is actually different
+            setBusLocation(prevLocation => {
+                if (prevLocation &&
+                    prevLocation.lat === realTimeLocation.lat &&
+                    prevLocation.lng === realTimeLocation.lng) {
+                    console.log('📍 Same location received via realTimeLocation prop, skipping update');
+                    return prevLocation;
+                }
+                console.log('📍 New location received via realTimeLocation prop, updating');
+                return {
+                    lat: realTimeLocation.lat,
+                    lng: realTimeLocation.lng,
+                    timestamp: realTimeLocation.timestamp,
+                    accuracy: realTimeLocation.accuracy
+                };
+            });
+
+            setLastUpdate(new Date(realTimeLocation.timestamp));
+            setAccuracy(realTimeLocation.accuracy);
         }
     }, [realTimeLocation]);
 
-    // Set up periodic refresh for location data (every 3 seconds as backup)
+    // Set up periodic refresh for location data (every 10 seconds as backup - like user panel)
     useEffect(() => {
         if (!isOpen || !trip) return;
 
@@ -67,7 +87,7 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
             if (socketRef.current && socketRef.current.connected) {
                 socketRef.current.emit('request-location', { tripId: trip.trip_id });
             }
-        }, 3000);
+        }, 10000);
 
         return () => clearInterval(refreshInterval);
     }, [isOpen, trip]);
@@ -87,6 +107,12 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
     const connectToSocket = () => {
         if (!trip) return;
 
+        // Disconnect existing socket if any
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+        }
+
         const socket = io('http://localhost:5000');
         socketRef.current = socket;
 
@@ -103,7 +129,27 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         socket.on('bus-location-update', (data) => {
             console.log('Received bus-location-update:', data);
             if (data.tripId === trip.trip_id) {
-                updateBusLocation(data);
+                // Only update if the location is actually different
+                const newLocation = {
+                    lat: data.latitude,
+                    lng: data.longitude,
+                    timestamp: data.timestamp,
+                    accuracy: data.accuracy
+                };
+
+                setBusLocation(prevLocation => {
+                    if (prevLocation &&
+                        prevLocation.lat === newLocation.lat &&
+                        prevLocation.lng === newLocation.lng) {
+                        console.log('📍 Same location received via bus-location-update, skipping update');
+                        return prevLocation;
+                    }
+                    console.log('📍 New location received via bus-location-update, updating');
+                    return newLocation;
+                });
+
+                setLastUpdate(new Date(data.timestamp));
+                setAccuracy(data.accuracy);
             }
         });
 
@@ -111,12 +157,35 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
         socket.on('location-update', (data) => {
             console.log('Received location-update:', data);
             if (data.tripId === trip.trip_id) {
-                updateBusLocation(data);
+                // Only update if the location is actually different
+                const newLocation = {
+                    lat: data.latitude,
+                    lng: data.longitude,
+                    timestamp: data.timestamp,
+                    accuracy: data.accuracy
+                };
+
+                setBusLocation(prevLocation => {
+                    if (prevLocation &&
+                        prevLocation.lat === newLocation.lat &&
+                        prevLocation.lng === newLocation.lng) {
+                        console.log('📍 Same location received, skipping update');
+                        return prevLocation;
+                    }
+                    console.log('📍 New location received, updating');
+                    return newLocation;
+                });
+
+                setLastUpdate(new Date(data.timestamp));
+                setAccuracy(data.accuracy);
             }
         });
 
         // Request initial location data
         socket.emit('request-location', { tripId: trip.trip_id });
+
+        // Check if there's an active driver for this trip
+        console.log('🔍 Checking for active driver for trip:', trip.trip_id);
     };
 
     const updateBusLocation = (locationData) => {
@@ -127,12 +196,34 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
             accuracy: locationData.accuracy
         };
 
-        setBusLocation(newLocation);
+        // Only update if the location data is valid and different
+        setBusLocation(prevLocation => {
+            if (prevLocation &&
+                prevLocation.lat === newLocation.lat &&
+                prevLocation.lng === newLocation.lng) {
+                return prevLocation; // No change needed
+            }
+            return newLocation;
+        });
+
         setLastUpdate(new Date(locationData.timestamp));
         setAccuracy(locationData.accuracy);
 
-        // Add to location history
-        setLocationHistory(prev => [...prev, newLocation]);
+        // Add to location history only if location actually changed
+        setLocationHistory(prev => {
+            const lastLocation = prev[prev.length - 1];
+            if (!lastLocation) {
+                return [newLocation];
+            }
+
+            // Only add if location actually changed (exact coordinates)
+            if (lastLocation.lat !== newLocation.lat || lastLocation.lng !== newLocation.lng) {
+                // Keep only last 50 locations to prevent memory issues
+                const newHistory = [...prev, newLocation];
+                return newHistory.length > 50 ? newHistory.slice(-50) : newHistory;
+            }
+            return prev;
+        });
     };
 
     const getAccuracyStatus = (acc) => {
@@ -399,7 +490,14 @@ const LiveTrackingModal = ({ isOpen, onClose, trip, realTimeLocation }) => {
                                                 {isConnected ? 'Live' : 'Offline'}
                                             </p>
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-1">{locationHistory.length} updates</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Last Updated: {formatLastUpdated()}
+                                        </p>
+                                        {lastUpdate && (Date.now() - lastUpdate.getTime()) > 60000 && (
+                                            <p className="text-xs text-orange-500 mt-1">
+                                                ⚠️ No active driver - location may be stale
+                                            </p>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

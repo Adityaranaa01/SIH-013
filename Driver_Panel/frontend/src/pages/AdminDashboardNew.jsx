@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '../components/AdminLayout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
@@ -66,16 +66,41 @@ const AdminDashboardNew = () => {
         loadDashboardData();
         setupWebSocket();
 
-        // Set up periodic refresh for dashboard data (every 30 seconds)
+        // Set up periodic refresh for dashboard data (every 60 seconds - reduced frequency)
         const refreshInterval = setInterval(() => {
             loadDashboardData();
-        }, 30000);
+        }, 60000);
+
+        // Set up periodic refresh for location data (every 10 seconds - like user panel)
+        const locationRefreshInterval = setInterval(async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/locations/active');
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        result.data.forEach(location => {
+                            updateTripLocation({
+                                tripId: location.trip_id,
+                                busNumber: location.bus_number,
+                                latitude: location.latitude,
+                                longitude: location.longitude,
+                                timestamp: location.timestamp,
+                                accuracy: location.accuracy
+                            });
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to refresh location data:', error);
+            }
+        }, 10000);
 
         return () => {
             if (socketRef.current) {
                 socketRef.current.disconnect();
             }
             clearInterval(refreshInterval);
+            clearInterval(locationRefreshInterval);
         };
     }, []);
 
@@ -95,28 +120,44 @@ const AdminDashboardNew = () => {
 
         socket.on('connect', () => {
             console.log('Admin dashboard connected to WebSocket');
+            console.log('🔌 Socket ID:', socket.id);
+            console.log('🔌 Socket connected:', socket.connected);
+
+            // Test if we can receive bus-location-update events
+            console.log('🧪 Testing bus-location-update event reception...');
         });
 
         socket.on('disconnect', () => {
             console.log('Admin dashboard disconnected from WebSocket');
         });
 
-        // Listen for real-time bus location updates
+        // Listen for real-time bus location updates (primary event)
         socket.on('bus-location-update', (data) => {
             console.log('📍 Admin received bus-location-update:', data);
+            console.log('📍 Current tripLocations before update:', tripLocations);
+            console.log('📍 WebSocket connected clients:', io.engine?.clientsCount || 'unknown');
             updateTripLocation(data);
         });
 
-        // Listen for location updates (alternative event)
+        // Listen for location updates (fallback event)
         socket.on('location-update', (data) => {
             console.log('📍 Admin received location-update:', data);
+            console.log('📍 Current tripLocations before update:', tripLocations);
             updateTripLocation(data);
+        });
+
+        // Listen for any WebSocket event to test connectivity
+        socket.onAny((eventName, ...args) => {
+            console.log('🔍 Admin received WebSocket event:', eventName, args);
         });
     };
 
     const updateTripLocation = (locationData) => {
         const tripId = locationData.tripId || locationData.busNumber;
-        if (!tripId) return;
+        if (!tripId) {
+            console.log('❌ No tripId found in location data:', locationData);
+            return;
+        }
 
         const newLocation = {
             lat: locationData.latitude,
@@ -125,10 +166,27 @@ const AdminDashboardNew = () => {
             accuracy: locationData.accuracy
         };
 
-        setTripLocations(prev => ({
-            ...prev,
-            [tripId]: newLocation
-        }));
+        console.log('📍 Updating location for tripId:', tripId, 'New location:', newLocation);
+
+        // Only update if the location data is valid and different
+        setTripLocations(prev => {
+            const currentLocation = prev[tripId];
+            console.log('📍 Current location for tripId:', tripId, 'Current:', currentLocation);
+
+            if (currentLocation) {
+                // Only update if location actually changed (exact coordinates)
+                if (currentLocation.lat === newLocation.lat && currentLocation.lng === newLocation.lng) {
+                    console.log('📍 No change needed for tripId:', tripId);
+                    return prev; // No change needed
+                }
+            }
+
+            console.log('📍 Updating location for tripId:', tripId);
+            return {
+                ...prev,
+                [tripId]: newLocation
+            };
+        });
     };
 
     const loadDashboardData = async () => {
@@ -270,6 +328,11 @@ const AdminDashboardNew = () => {
         setAssigningBus(bus);
         setIsAssignRouteModalOpen(true);
     };
+
+    // Memoize realTimeLocation to prevent unnecessary re-renders
+    const realTimeLocation = useMemo(() => {
+        return trackingTrip ? tripLocations[trackingTrip.trip_id] : null;
+    }, [trackingTrip, tripLocations]);
 
     const handleAssignRoute = async (routeId) => {
         try {
@@ -901,7 +964,7 @@ const AdminDashboardNew = () => {
                 isOpen={isLiveTrackingModalOpen}
                 onClose={() => setIsLiveTrackingModalOpen(false)}
                 trip={trackingTrip}
-                realTimeLocation={trackingTrip ? tripLocations[trackingTrip.trip_id] : null}
+                realTimeLocation={realTimeLocation}
             />
 
             {/* Bus Modal */}
